@@ -26,6 +26,13 @@ impl fmt::Debug for StrRef {
     }
 }
 
+impl fmt::Display for StrRef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s: String = (*self).into();
+        write!(f, "{:?}", s)
+    }
+}
+
 impl From<String> for StrRef {
     fn from(s: String) -> Self {
         get_str_ref(&mut get_str_ref_lock(), &s)
