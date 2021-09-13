@@ -250,7 +250,7 @@ where
         if let Some(tok) = KEYWORDS.get(name.as_str()) {
             Ok((start_pos, tok.clone(), end_pos))
         } else {
-            Ok((start_pos, Tok::Name { name }, end_pos))
+            Ok((start_pos, Tok::Name { name: name.into() }, end_pos))
         }
     }
 
@@ -784,9 +784,7 @@ where
                 let tok_end = self.get_pos();
                 self.emit((
                     tok_start,
-                    Tok::Name {
-                        name: c.to_string(),
-                    },
+                    Tok::Name { name: c.to_string().into() },
                     tok_end,
                 ));
             } else {
@@ -1402,7 +1400,7 @@ mod tests {
             tokens,
             vec![
                 Tok::Name {
-                    name: String::from("avariable"),
+                    name: String::from("avariable").into(),
                 },
                 Tok::Equal,
                 Tok::Int {
@@ -1433,7 +1431,7 @@ mod tests {
                     vec![
                         Tok::Def,
                         Tok::Name {
-                            name: String::from("foo"),
+                            name: String::from("foo").into(),
                         },
                         Tok::Lpar,
                         Tok::Rpar,
@@ -1469,7 +1467,7 @@ mod tests {
                     vec![
                         Tok::Def,
                         Tok::Name {
-                            name: String::from("foo"),
+                            name: String::from("foo").into(),
                         },
                         Tok::Lpar,
                         Tok::Rpar,
@@ -1478,7 +1476,7 @@ mod tests {
                         Tok::Indent,
                         Tok::If,
                         Tok::Name {
-                            name: String::from("x"),
+                            name: String::from("x").into(),
                         },
                         Tok::Colon,
                         Tok::Newline,
@@ -1507,7 +1505,7 @@ mod tests {
                     vec![
                         Tok::Def,
                         Tok::Name {
-                            name: String::from("foo"),
+                            name: String::from("foo").into(),
                         },
                         Tok::Lpar,
                         Tok::Rpar,
@@ -1516,7 +1514,7 @@ mod tests {
                         Tok::Indent,
                         Tok::If,
                         Tok::Name {
-                            name: String::from("x"),
+                            name: String::from("x").into(),
                         },
                         Tok::Colon,
                         Tok::Newline,
@@ -1556,7 +1554,7 @@ mod tests {
                     tokens,
                     vec![
                         Tok::Name {
-                            name: String::from("x"),
+                            name: String::from("x").into(),
                         },
                         Tok::Equal,
                         Tok::Lsqb,

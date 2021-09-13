@@ -3,7 +3,65 @@
 pub use crate::location::Location;
 pub use crate::constant::*;
 
-type Ident = String;
+use std::{collections::HashMap, fmt};
+use std::sync::{Mutex, MutexGuard};
+
+#[derive(Default)]
+pub struct StrRefMap {
+    str_to_id: HashMap<String, usize>,
+    id_to_str: Vec<String>,
+}
+
+lazy_static! {
+    static ref STR_REF_MAP: Mutex<StrRefMap> = Default::default();
+}
+
+#[derive(Eq, PartialEq, Copy, Clone, Hash)]
+pub struct StrRef(usize);
+
+impl fmt::Debug for StrRef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s: String = (*self).into();
+        write!(f, "{:?}", s)
+    }
+}
+
+impl From<String> for StrRef {
+    fn from(s: String) -> Self {
+        get_str_ref(&mut get_str_ref_lock(), &s)
+    }
+}
+
+impl From<&str> for StrRef {
+    fn from(s: &str) -> Self {
+        get_str_ref(&mut get_str_ref_lock(), &s)
+    }
+}
+
+impl From<StrRef> for String{
+    fn from(s: StrRef) -> Self {
+        get_str_from_ref(&get_str_ref_lock(), s).to_string()
+    }
+}
+
+pub fn get_str_ref_lock<'a>() -> MutexGuard<'a, StrRefMap> {
+    STR_REF_MAP.lock().unwrap()
+}
+
+pub fn get_str_ref(lock: &mut MutexGuard<StrRefMap>, str: &str) -> StrRef {
+    StrRef(lock.str_to_id.get(str).cloned().unwrap_or_else(|| {
+        let len = lock.id_to_str.len();
+        lock.id_to_str.push(str.to_string());
+        lock.str_to_id.insert(str.to_string(), len);
+        len
+    }))
+}
+
+pub fn get_str_from_ref<'a>(lock: &'a MutexGuard<StrRefMap>, id: StrRef) -> &'a str {
+    &lock.id_to_str[id.0]
+}
+
+type Ident = StrRef;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Located<T, U = ()> {
