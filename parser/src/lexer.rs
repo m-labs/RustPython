@@ -629,6 +629,7 @@ where
         if let Some(c) = self.chr0 {
             match c {
                 '_' | '0'..='9' | 'a'..='z' | 'A'..='Z' => true,
+                '+' | '-' | '*' | '/' | '=' | ' ' | '<' | '>' => false,
                 c => is_xid_continue(c),
             }
         } else {
