@@ -5,18 +5,12 @@ pub use crate::constant::*;
 
 use std::fmt;
 use parking_lot::{Mutex, MutexGuard};
-use string_interner::{StringInterner, symbol::SymbolU32};
+use string_interner::{DefaultBackend, DefaultSymbol, StringInterner, symbol::SymbolU32};
+use fxhash::FxBuildHasher;
 
-// #[derive(Default)]
-// pub struct StrRefMap {
-//     str_to_id: HashMap<&'static str, usize>,
-//     id_to_str: Vec<&'static str>,
-//     arena: Arena<u8>
-// }
-
+pub type Interner = StringInterner<DefaultSymbol, DefaultBackend<DefaultSymbol>, FxBuildHasher>;
 lazy_static! {
-    // static ref STR_REF_MAP: Mutex<StrRefMap> = Default::default();
-    static ref INTERNER: Mutex<StringInterner> = Default::default();
+    static ref INTERNER: Mutex<Interner> = Mutex::new(StringInterner::with_hasher(FxBuildHasher::default()));
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Hash)]
@@ -54,27 +48,16 @@ impl From<StrRef> for String{
     }
 }
 
-pub fn get_str_ref_lock<'a>() -> MutexGuard<'a, StringInterner> {
+pub fn get_str_ref_lock<'a>() -> MutexGuard<'a, Interner> {
     INTERNER.lock()
 }
 
-pub fn get_str_ref(lock: &mut MutexGuard<StringInterner>, str: &str) -> StrRef {
+pub fn get_str_ref(lock: &mut MutexGuard<Interner>, str: &str) -> StrRef {
     StrRef(lock.get_or_intern(str))
-    // StrRef(lock.str_to_id.get(str).cloned().unwrap_or_else(|| {
-    //     let len = lock.id_to_str.len();
-    //     let name = lock.arena.alloc_str(str);
-    //     let name = unsafe {
-    //         std::mem::transmute(name)
-    //     };
-    //     lock.id_to_str.push(name);
-    //     lock.str_to_id.insert(name, len);
-    //     len
-    // }))
 }
 
-pub fn get_str_from_ref<'a>(lock: &'a MutexGuard<StringInterner>, id: StrRef) -> &'a str {
+pub fn get_str_from_ref<'a>(lock: &'a MutexGuard<Interner>, id: StrRef) -> &'a str {
     lock.resolve(id.0).unwrap()
-    // &lock.id_to_str[id.0]
 }
 
 type Ident = StrRef;
