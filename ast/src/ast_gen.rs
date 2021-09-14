@@ -5,11 +5,13 @@ pub use crate::constant::*;
 
 use std::{collections::HashMap, fmt};
 use parking_lot::{Mutex, MutexGuard};
+use typed_arena::Arena;
 
 #[derive(Default)]
 pub struct StrRefMap {
-    str_to_id: HashMap<String, usize>,
-    id_to_str: Vec<String>,
+    str_to_id: HashMap<&'static str, usize>,
+    id_to_str: Vec<&'static str>,
+    arena: Arena<u8>
 }
 
 lazy_static! {
@@ -58,8 +60,12 @@ pub fn get_str_ref_lock<'a>() -> MutexGuard<'a, StrRefMap> {
 pub fn get_str_ref(lock: &mut MutexGuard<StrRefMap>, str: &str) -> StrRef {
     StrRef(lock.str_to_id.get(str).cloned().unwrap_or_else(|| {
         let len = lock.id_to_str.len();
-        lock.id_to_str.push(str.to_string());
-        lock.str_to_id.insert(str.to_string(), len);
+        let name = lock.arena.alloc_str(str);
+        let name = unsafe {
+            std::mem::transmute(name)
+        };
+        lock.id_to_str.push(name);
+        lock.str_to_id.insert(name, len);
         len
     }))
 }
