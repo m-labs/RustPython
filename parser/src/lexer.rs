@@ -622,7 +622,11 @@ where
     }
 
     fn is_identifier_start(&self, c: char) -> bool {
-        c == '_' || is_xid_start(c)
+        match c {
+            '_' | 'a'..='z' | 'A'..='Z' => true,
+            '+' | '-' | '*' | '/' | '=' | ' ' | '<' | '>' => false,
+            c => is_xid_start(c),
+        }
     }
 
     fn is_identifier_continuation(&self) -> bool {
