@@ -4,7 +4,7 @@ pub use crate::location::Location;
 pub use crate::constant::*;
 
 use std::{collections::HashMap, fmt};
-use std::sync::{Mutex, MutexGuard};
+use parking_lot::{Mutex, MutexGuard};
 
 #[derive(Default)]
 pub struct StrRefMap {
@@ -52,7 +52,7 @@ impl From<StrRef> for String{
 }
 
 pub fn get_str_ref_lock<'a>() -> MutexGuard<'a, StrRefMap> {
-    STR_REF_MAP.lock().unwrap()
+    STR_REF_MAP.lock()
 }
 
 pub fn get_str_ref(lock: &mut MutexGuard<StrRefMap>, str: &str) -> StrRef {
