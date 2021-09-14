@@ -3,23 +3,24 @@
 pub use crate::location::Location;
 pub use crate::constant::*;
 
-use std::{collections::HashMap, fmt};
+use std::fmt;
 use parking_lot::{Mutex, MutexGuard};
-use typed_arena::Arena;
+use string_interner::{StringInterner, symbol::SymbolU32};
 
-#[derive(Default)]
-pub struct StrRefMap {
-    str_to_id: HashMap<&'static str, usize>,
-    id_to_str: Vec<&'static str>,
-    arena: Arena<u8>
-}
+// #[derive(Default)]
+// pub struct StrRefMap {
+//     str_to_id: HashMap<&'static str, usize>,
+//     id_to_str: Vec<&'static str>,
+//     arena: Arena<u8>
+// }
 
 lazy_static! {
-    static ref STR_REF_MAP: Mutex<StrRefMap> = Default::default();
+    // static ref STR_REF_MAP: Mutex<StrRefMap> = Default::default();
+    static ref INTERNER: Mutex<StringInterner> = Default::default();
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Hash)]
-pub struct StrRef(usize);
+pub struct StrRef(SymbolU32);
 
 impl fmt::Debug for StrRef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -53,25 +54,27 @@ impl From<StrRef> for String{
     }
 }
 
-pub fn get_str_ref_lock<'a>() -> MutexGuard<'a, StrRefMap> {
-    STR_REF_MAP.lock()
+pub fn get_str_ref_lock<'a>() -> MutexGuard<'a, StringInterner> {
+    INTERNER.lock()
 }
 
-pub fn get_str_ref(lock: &mut MutexGuard<StrRefMap>, str: &str) -> StrRef {
-    StrRef(lock.str_to_id.get(str).cloned().unwrap_or_else(|| {
-        let len = lock.id_to_str.len();
-        let name = lock.arena.alloc_str(str);
-        let name = unsafe {
-            std::mem::transmute(name)
-        };
-        lock.id_to_str.push(name);
-        lock.str_to_id.insert(name, len);
-        len
-    }))
+pub fn get_str_ref(lock: &mut MutexGuard<StringInterner>, str: &str) -> StrRef {
+    StrRef(lock.get_or_intern(str))
+    // StrRef(lock.str_to_id.get(str).cloned().unwrap_or_else(|| {
+    //     let len = lock.id_to_str.len();
+    //     let name = lock.arena.alloc_str(str);
+    //     let name = unsafe {
+    //         std::mem::transmute(name)
+    //     };
+    //     lock.id_to_str.push(name);
+    //     lock.str_to_id.insert(name, len);
+    //     len
+    // }))
 }
 
-pub fn get_str_from_ref<'a>(lock: &'a MutexGuard<StrRefMap>, id: StrRef) -> &'a str {
-    &lock.id_to_str[id.0]
+pub fn get_str_from_ref<'a>(lock: &'a MutexGuard<StringInterner>, id: StrRef) -> &'a str {
+    lock.resolve(id.0).unwrap()
+    // &lock.id_to_str[id.0]
 }
 
 type Ident = StrRef;
