@@ -628,7 +628,7 @@ where
     fn is_identifier_continuation(&self) -> bool {
         if let Some(c) = self.chr0 {
             match c {
-                '_' | '0'..='9' => true,
+                '_' | '0'..='9' | 'a'..='z' | 'A'..='Z' => true,
                 c => is_xid_continue(c),
             }
         } else {
