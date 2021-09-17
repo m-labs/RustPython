@@ -3,7 +3,7 @@
 pub use crate::location::Location;
 pub use crate::constant::*;
 
-use std::fmt;
+use std::{fmt, collections::HashMap, cell::RefCell};
 use parking_lot::{Mutex, MutexGuard};
 use string_interner::{DefaultBackend, DefaultSymbol, StringInterner, symbol::SymbolU32};
 use fxhash::FxBuildHasher;
@@ -11,6 +11,10 @@ use fxhash::FxBuildHasher;
 pub type Interner = StringInterner<DefaultSymbol, DefaultBackend<DefaultSymbol>, FxBuildHasher>;
 lazy_static! {
     static ref INTERNER: Mutex<Interner> = Mutex::new(StringInterner::with_hasher(FxBuildHasher::default()));
+}
+
+thread_local! {
+    static LOCAL_INTERNER: RefCell<HashMap<String, StrRef>> = Default::default();
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Hash)]
@@ -38,7 +42,15 @@ impl From<String> for StrRef {
 
 impl From<&str> for StrRef {
     fn from(s: &str) -> Self {
-        get_str_ref(&mut get_str_ref_lock(), &s)
+        // thread local cache
+        LOCAL_INTERNER.with(|local| {
+            let mut local = local.borrow_mut();
+            local.get(s).copied().unwrap_or_else(|| {
+                let r = get_str_ref(&mut get_str_ref_lock(), &s);
+                local.insert(s.to_string(), r);
+                r
+            })
+        })
     }
 }
 
