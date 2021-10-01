@@ -415,17 +415,42 @@ where
         }
     }
 
-    /// Skip everything until end of line
-    fn lex_comment(&mut self) {
+    /// Skip everything until end of line, may produce nac3 pseudocomment
+    fn lex_comment(&mut self) -> Option<Spanned> {
         self.next_char();
+        // if possibly nac3 pseudocomment, special handling for `# nac3:`
+        let mut prefix = " nac3:".chars();
+        let mut is_comment = true;
         loop {
             match self.chr0 {
-                Some('\n') => return,
-                Some(_) => {}
-                None => return,
+                Some('\n') => return None,
+                None => return None,
+                Some(c) => {
+                    if let (true, Some(p)) = (is_comment, prefix.next()) {
+                        is_comment = is_comment && c == p
+                    } else {
+                        // done checking prefix, if is comment then return the spanned
+                        if is_comment {
+                            let start_loc = self.location;
+                            let mut content = String::new();
+                            loop {
+                                match self.chr0 {
+                                    Some('\n') | None => break,
+                                    Some(c) => content.push(c),
+                                }
+                                self.next_char();
+                            }
+                            return Some((
+                                start_loc,
+                                Tok::Nac3Comment { content: content.into() },
+                                self.location
+                            ));
+                        }
+                    }
+                }
             }
             self.next_char();
-        }
+        };
     }
 
     fn unicode_literal(&mut self, literal_number: usize) -> Result<char, LexicalError> {
@@ -658,10 +683,11 @@ where
     }
 
     /// Given we are at the start of a line, count the number of spaces and/or tabs until the first character.
-    fn eat_indentation(&mut self) -> Result<IndentationLevel, LexicalError> {
+    fn eat_indentation(&mut self) -> Result<(IndentationLevel, Option<Spanned>), LexicalError> {
         // Determine indentation:
         let mut spaces: usize = 0;
         let mut tabs: usize = 0;
+        let mut nac3comment: Option<Spanned> = None;
         loop {
             match self.chr0 {
                 Some(' ') => {
@@ -693,7 +719,8 @@ where
                     tabs += 1;
                 }
                 Some('#') => {
-                    self.lex_comment();
+                    // TODO:
+                    nac3comment = self.lex_comment();
                     spaces = 0;
                     tabs = 0;
                 }
@@ -722,11 +749,15 @@ where
             }
         }
 
-        Ok(IndentationLevel { tabs, spaces })
+        Ok((IndentationLevel { tabs, spaces }, nac3comment))
     }
 
     fn handle_indentations(&mut self) -> Result<(), LexicalError> {
-        let indentation_level = self.eat_indentation()?;
+        let eat_result = self.eat_indentation()?;
+        let indentation_level = eat_result.0;
+        if let Some(comment) = eat_result.1 {
+            self.emit(comment);
+        }
 
         if self.nesting == 0 {
             // Determine indent or dedent:
@@ -833,7 +864,9 @@ where
                 self.emit(number);
             }
             '#' => {
-                self.lex_comment();
+                if let Some(c) = self.lex_comment() {
+                    self.emit(c);
+                };
             }
             '"' | '\'' => {
                 let string = self.lex_string(false, false, false, false)?;
