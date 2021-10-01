@@ -757,6 +757,7 @@ where
         let indentation_level = eat_result.0;
         if let Some(comment) = eat_result.1 {
             self.emit(comment);
+            self.emit((self.location, Tok::Newline, self.location));
         }
 
         if self.nesting == 0 {
@@ -866,6 +867,7 @@ where
             '#' => {
                 if let Some(c) = self.lex_comment() {
                     self.emit(c);
+                    self.emit((self.location, Tok::Newline, self.location));
                 };
             }
             '"' | '\'' => {
@@ -1318,6 +1320,28 @@ mod tests {
     pub fn lex_source(source: &str) -> Vec<Tok> {
         let lexer = make_tokenizer(source);
         lexer.map(|x| x.unwrap().1).collect()
+    }
+
+    #[test]
+    fn test_nac3comment() {
+        let src = "a: int32\n# nac3: \nb: int64";
+        let tokens = lex_source(src);
+        assert_eq!(
+            tokens,
+            vec![
+                Tok::Name { name: "a".into() },
+                Tok::Colon,
+                Tok::Name { name: "int32".into() },
+                Tok::Newline,
+                Tok::Nac3Comment { content: " ".into() },
+                Tok::Newline,
+                Tok::Name { name: "b".into() },
+                Tok::Colon,
+                Tok::Name { name: "int64".into() },
+                Tok::Newline,
+
+            ]
+        );
     }
 
     #[test]
