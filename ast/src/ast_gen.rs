@@ -217,6 +217,9 @@ pub enum StmtKind<U = ()> {
     Expr {
         value: Box<Expr<U>>,
     },
+    Nac3Comment {
+        config: String,
+    },
     Pass,
     Break,
     Continue,
@@ -710,6 +713,11 @@ pub mod fold {
             StmtKind::Expr { value } => {
                 Ok(StmtKind::Expr {
                     value: Foldable::fold(value, folder)?,
+                })
+            }
+            StmtKind::Nac3Comment { config } => {
+                Ok(StmtKind::Nac3Comment {
+                    config: Foldable::fold(config, folder)?,
                 })
             }
             StmtKind::Pass {  } => {

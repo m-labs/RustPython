@@ -46,6 +46,7 @@ module Python
           | Global(identifier* names)
           | Nonlocal(identifier* names)
           | Expr(expr value)
+          | Nac3Comment(string config)
           | Pass | Break | Continue
 
           -- col_offset is the byte offset in the utf8 string the parser uses
