@@ -70,7 +70,7 @@ expression: parse_program(&source).unwrap()
                         value: None,
                         simple: true,
                         nac3comment: Some(
-                            " no_warn_unused_1",
+                            "no_warn_unused_1",
                         ),
                     },
                 },
@@ -106,7 +106,7 @@ expression: parse_program(&source).unwrap()
                         value: None,
                         simple: true,
                         nac3comment: Some(
-                            " no_warn_unused_2",
+                            "no_warn_unused_2",
                         ),
                     },
                 },
@@ -244,7 +244,7 @@ expression: parse_program(&source).unwrap()
                                     orelse: [],
                                     type_comment: None,
                                     nac3comment: Some(
-                                        " unroll",
+                                        "unroll",
                                     ),
                                 },
                             },

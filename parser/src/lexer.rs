@@ -442,7 +442,7 @@ where
                             }
                             return Some((
                                 start_loc,
-                                Tok::Nac3Comment { content: content.into() },
+                                Tok::Nac3Comment { content: content.trim().into() },
                                 self.location
                             ));
                         }
@@ -1341,13 +1341,12 @@ b: int64";
                 Tok::Colon,
                 Tok::Name { name: "int32".into() },
                 Tok::Newline,
-                Tok::Nac3Comment { content: " ".into() },
+                Tok::Nac3Comment { content: "".into() },
                 Tok::Newline,
                 Tok::Name { name: "b".into() },
                 Tok::Colon,
                 Tok::Name { name: "int64".into() },
                 Tok::Newline,
-
             ]
         );
     }
@@ -1377,10 +1376,10 @@ class Foo(A, B):
                 Rpar,
                 Colon,
                 Newline,
-                Nac3Comment { content: " no indent".into() },
+                Nac3Comment { content: "no indent".into() },
                 Newline,
                 Indent,
-                Nac3Comment { content: " correct indent".into() },
+                Nac3Comment { content: "correct indent".into() },
                 Newline,
                 Name { name: "b".into() },
                 Colon,
@@ -1389,7 +1388,7 @@ class Foo(A, B):
                 Name { name: "a".into() },
                 Colon,
                 Name { name: "int32".into() },
-                Nac3Comment { content: " no need indent".into() },
+                Nac3Comment { content: "no need indent".into() },
                 Newline,
                 Def,
                 Name { name: "__init__".into() },
