@@ -164,4 +164,24 @@ class Foo(A, B):
         let parse_ast = parse_expression(&source).unwrap();
         insta::assert_debug_snapshot!(parse_ast);
     }
+
+    #[test]
+    fn test_parse_class_with_nac3comment() {
+        let source = "\
+class Foo(A, B):
+    a: int32 # nac3: no_warn_unused_1
+# normal comment
+    # nomal indent comment
+    # nac3: no_warn_unused_2
+# normal comment
+    # normal indent comment
+    b: int64
+
+    c: int32
+    def __init__(self):
+        # nac3: unroll
+        for p in ('123', 2):
+            pass";
+        insta::assert_debug_snapshot!(parse_program(&source).unwrap());
+    }
 }

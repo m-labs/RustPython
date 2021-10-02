@@ -719,8 +719,14 @@ where
                     tabs += 1;
                 }
                 Some('#') => {
-                    // TODO:
                     nac3comment = self.lex_comment();
+                    // if is nac3comment, we need to add newline, so it is not begin of line
+                    // and we should break from the loop, else in the next loop it will be
+                    // regarded as a empty line
+                    if nac3comment.is_some() {
+                        self.at_begin_of_line = false;
+                        break;
+                    }
                     spaces = 0;
                     tabs = 0;
                 }
@@ -755,10 +761,6 @@ where
     fn handle_indentations(&mut self) -> Result<(), LexicalError> {
         let eat_result = self.eat_indentation()?;
         let indentation_level = eat_result.0;
-        if let Some(comment) = eat_result.1 {
-            self.emit(comment);
-            self.emit((self.location, Tok::Newline, self.location));
-        }
 
         if self.nesting == 0 {
             // Determine indent or dedent:
@@ -802,6 +804,10 @@ where
                     }
                 }
             }
+        };
+
+        if let Some(comment) = eat_result.1 {
+            self.emit(comment);
         }
 
         Ok(())
@@ -867,7 +873,6 @@ where
             '#' => {
                 if let Some(c) = self.lex_comment() {
                     self.emit(c);
-                    self.emit((self.location, Tok::Newline, self.location));
                 };
             }
             '"' | '\'' => {
@@ -1324,7 +1329,10 @@ mod tests {
 
     #[test]
     fn test_nac3comment() {
-        let src = "a: int32\n# nac3: \nb: int64";
+        let src = "\
+a: int32
+# nac3: 
+b: int64";
         let tokens = lex_source(src);
         assert_eq!(
             tokens,
@@ -1342,6 +1350,61 @@ mod tests {
 
             ]
         );
+    }
+
+    #[test]
+    fn test_class_lex_with_nac3comment() {
+        use Tok::*;
+        let source = "\
+class Foo(A, B):
+# normal comment
+# nac3: no indent
+    # nac3: correct indent
+    b: int32
+    a: int32 # nac3: no need indent
+    def __init__(self):
+        pass";
+        let tokens = lex_source(source);
+        assert_eq!(
+            tokens,
+            vec![
+                Class,
+                Name { name: "Foo".into() },
+                Lpar,
+                Name { name: "A".into() },
+                Comma,
+                Name { name: "B".into() },
+                Rpar,
+                Colon,
+                Newline,
+                Nac3Comment { content: " no indent".into() },
+                Newline,
+                Indent,
+                Nac3Comment { content: " correct indent".into() },
+                Newline,
+                Name { name: "b".into() },
+                Colon,
+                Name { name: "int32".into() },
+                Newline,
+                Name { name: "a".into() },
+                Colon,
+                Name { name: "int32".into() },
+                Nac3Comment { content: " no need indent".into() },
+                Newline,
+                Def,
+                Name { name: "__init__".into() },
+                Lpar,
+                Name { name: "self".into() },
+                Rpar,
+                Colon,
+                Newline,
+                Indent,
+                Pass,
+                Newline,
+                Dedent,
+                Dedent
+            ]
+        )
     }
 
     #[test]
