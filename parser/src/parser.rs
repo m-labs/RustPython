@@ -184,4 +184,29 @@ class Foo(A, B):
             pass";
         insta::assert_debug_snapshot!(parse_program(&source).unwrap());
     }
+
+    #[test]
+    fn test_nac3_error() {
+        let source = "\
+class Foo(A, B):
+    a: int32 # nac3: no_warn_unused_1
+# normal comment
+    # nomal indent comment
+    # nac3: no_warn_unused_2
+# normal comment
+    # normal indent comment
+    b: int64
+
+    c: int32
+    def __init__(self):
+        # nac3: unroll
+        for p in ('123', 2):
+        # normal comment
+            # nac3: unroll
+            for pp in (2, '123'):
+                b = 3
+                # nac3: cannot comment
+                a = 3";
+        parse_program(&source).unwrap();
+    }
 }
