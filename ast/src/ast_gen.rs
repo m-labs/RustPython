@@ -151,6 +151,7 @@ pub enum StmtKind<U = ()> {
         annotation: Box<Expr<U>>,
         value: Option<Box<Expr<U>>>,
         simple: bool,
+        nac3comment: Option<String>,
     },
     For {
         target: Box<Expr<U>>,
@@ -158,6 +159,7 @@ pub enum StmtKind<U = ()> {
         body: Vec<Stmt<U>>,
         orelse: Vec<Stmt<U>>,
         type_comment: Option<String>,
+        nac3comment: Option<String>,
     },
     AsyncFor {
         target: Box<Expr<U>>,
@@ -216,9 +218,6 @@ pub enum StmtKind<U = ()> {
     },
     Expr {
         value: Box<Expr<U>>,
-    },
-    Nac3Comment {
-        config: String,
     },
     Pass,
     Break,
@@ -614,21 +613,23 @@ pub mod fold {
                     value: Foldable::fold(value, folder)?,
                 })
             }
-            StmtKind::AnnAssign { target,annotation,value,simple } => {
+            StmtKind::AnnAssign { target,annotation,value,simple,nac3comment } => {
                 Ok(StmtKind::AnnAssign {
                     target: Foldable::fold(target, folder)?,
                     annotation: Foldable::fold(annotation, folder)?,
                     value: Foldable::fold(value, folder)?,
                     simple: Foldable::fold(simple, folder)?,
+                    nac3comment: Foldable::fold(nac3comment, folder)?,
                 })
             }
-            StmtKind::For { target,iter,body,orelse,type_comment } => {
+            StmtKind::For { target,iter,body,orelse,type_comment,nac3comment } => {
                 Ok(StmtKind::For {
                     target: Foldable::fold(target, folder)?,
                     iter: Foldable::fold(iter, folder)?,
                     body: Foldable::fold(body, folder)?,
                     orelse: Foldable::fold(orelse, folder)?,
                     type_comment: Foldable::fold(type_comment, folder)?,
+                    nac3comment: Foldable::fold(nac3comment, folder)?,
                 })
             }
             StmtKind::AsyncFor { target,iter,body,orelse,type_comment } => {
@@ -713,11 +714,6 @@ pub mod fold {
             StmtKind::Expr { value } => {
                 Ok(StmtKind::Expr {
                     value: Foldable::fold(value, folder)?,
-                })
-            }
-            StmtKind::Nac3Comment { config } => {
-                Ok(StmtKind::Nac3Comment {
-                    config: Foldable::fold(config, folder)?,
                 })
             }
             StmtKind::Pass {  } => {
