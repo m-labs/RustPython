@@ -72,7 +72,7 @@ pub fn parse_expression(source: &str) -> Result<ast::Expr, ParseError> {
 
 // Parse a given source code
 pub fn parse(source: &str, mode: Mode) -> Result<ast::Mod, ParseError> {
-    let lxr = lexer::make_tokenizer(source);
+    let lxr = lexer::make_tokenizer(source, Some(" nac3:"));
     let marker_token = (Default::default(), mode.to_marker(), Default::default());
     let tokenizer = iter::once(Ok(marker_token)).chain(lxr);
 

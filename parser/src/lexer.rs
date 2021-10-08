@@ -65,6 +65,7 @@ pub struct Lexer<T: Iterator<Item = char>> {
     chr1: Option<char>,
     chr2: Option<char>,
     location: Location,
+    config_comment_prefix: Option<&'static str>
 }
 
 pub static KEYWORDS: phf::Map<&'static str, Tok> = phf::phf_map! {
@@ -112,16 +113,17 @@ pub type Spanned = (Location, Tok, Location);
 pub type LexResult = Result<Spanned, LexicalError>;
 
 #[inline]
-pub fn make_tokenizer(source: &str) -> impl Iterator<Item = LexResult> + '_ {
-    make_tokenizer_located(source, Location::new(0, 0))
+pub fn make_tokenizer<'a>(source: &'a str, config_comment_prefix: Option<&'static str>) -> impl Iterator<Item = LexResult> + 'a {
+    make_tokenizer_located(source, Location::new(0, 0), config_comment_prefix)
 }
 
-pub fn make_tokenizer_located(
-    source: &str,
+pub fn make_tokenizer_located<'a>(
+    source: &'a str,
     start_location: Location,
-) -> impl Iterator<Item = LexResult> + '_ {
+    config_comment_prefix: Option<&'static str>
+) -> impl Iterator<Item = LexResult> + 'a {
     let nlh = NewlineHandler::new(source.chars());
-    Lexer::new(nlh, start_location)
+    Lexer::new(nlh, start_location, config_comment_prefix)
 }
 
 // The newline handler is an iterator which collapses different newline
@@ -185,7 +187,7 @@ impl<T> Lexer<T>
 where
     T: Iterator<Item = char>,
 {
-    pub fn new(input: T, start: Location) -> Self {
+    pub fn new(input: T, start: Location, config_comment_prefix: Option<&'static str>) -> Self {
         let mut lxr = Lexer {
             chars: input,
             at_begin_of_line: true,
@@ -196,6 +198,7 @@ where
             location: start,
             chr1: None,
             chr2: None,
+            config_comment_prefix
         };
         lxr.next_char();
         lxr.next_char();
@@ -419,8 +422,9 @@ where
     fn lex_comment(&mut self) -> Option<Spanned> {
         self.next_char();
         // if possibly nac3 pseudocomment, special handling for `# nac3:`
-        let mut prefix = " nac3:".chars();
-        let mut is_comment = true;
+        let (mut prefix, mut is_comment) = self
+            .config_comment_prefix
+            .map_or_else(|| ("".chars(), false), |v| (v.chars(), true));
         loop {
             match self.chr0 {
                 Some('\n') => return None,
@@ -1323,7 +1327,7 @@ mod tests {
     const UNIX_EOL: &str = "\n";
 
     pub fn lex_source(source: &str) -> Vec<Tok> {
-        let lexer = make_tokenizer(source);
+        let lexer = make_tokenizer(source, Some(" nac3:"));
         lexer.map(|x| x.unwrap().1).collect()
     }
 
