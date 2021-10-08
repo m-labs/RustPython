@@ -22,6 +22,7 @@ impl<U> ExprKind<U> {
                 Constant::Tuple(_) => "tuple",
                 Constant::Bool(_) | Constant::None => "keyword",
                 Constant::Ellipsis => "ellipsis",
+                Constant::ConfigComment(_) => "config comment",
             },
             ExprKind::List { .. } => "list",
             ExprKind::Tuple { .. } => "tuple",

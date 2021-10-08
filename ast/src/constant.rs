@@ -11,6 +11,7 @@ pub enum Constant {
     Float(f64),
     Complex { real: f64, imag: f64 },
     Ellipsis,
+    ConfigComment(crate::StrRef),
 }
 
 impl From<String> for Constant {

@@ -124,9 +124,9 @@ ExpressionStatement: ast::Stmt = {
             },
         }
     },
-    <location:@L> <nac3com_above:(nac3comment "\n")?> <target:Test> ":" <annotation:Test> <rhs:AssignSuffix?> <nac3com_end:nac3comment?> =>? {
+    <location:@L> <target:Test> ":" <annotation:Test> <rhs:AssignSuffix?> => {
         let simple = matches!(target.node, ast::ExprKind::Name { .. });
-        Ok(ast::Stmt {
+        ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::AnnAssign {
@@ -134,19 +134,8 @@ ExpressionStatement: ast::Stmt = {
                 annotation: Box::new(annotation),
                 value: rhs.map(Box::new),
                 simple,
-                nac3comment: match (nac3com_above, nac3com_end) {
-                    (Some(above), Some(end)) => Err(ParseError::User {
-                        error: LexicalError {
-                            location,
-                            error: LexicalErrorType::OtherError("Cannot have nac3 comment at both places".into())
-                        }
-                    }),
-                    (Some(above), None) => Ok(Some(above.0.into())),
-                    (None, Some(end)) => Ok(Some(end.into())),
-                    _ => Ok(None)
-                }?
             },
-        })
+        }
     },
 };
 
@@ -391,7 +380,7 @@ WhileStatement: ast::Stmt = {
 };
 
 ForStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(nac3comment "\n")?> <is_async:"async"?> "for" <target:ExpressionList> "in" <iter:TestList> ":" <nac3com_end:nac3comment?> <body:Suite> <s2:("else" ":" Suite)?> =>? {
+    <location:@L> <is_async:"async"?> "for" <target:ExpressionList> "in" <iter:TestList> ":" <body:Suite> <s2:("else" ":" Suite)?> => {
         let orelse = s2.map(|s| s.2).unwrap_or_default();
         let target = Box::new(target);
         let iter = Box::new(iter);
@@ -399,19 +388,9 @@ ForStatement: ast::Stmt = {
         let node = if is_async.is_some() {
             ast::StmtKind::AsyncFor { target, iter, body, orelse, type_comment }
         } else {
-            ast::StmtKind::For { target, iter, body, orelse, type_comment, nac3comment: match (nac3com_above, nac3com_end) {
-                (Some(above), Some(end)) => Err(ParseError::User {
-                    error: LexicalError {
-                        location,
-                        error: LexicalErrorType::OtherError("Cannot have nac3 comment at both places".into())
-                    }
-                }),
-                (Some(above), None) => Ok(Some(above.0.into())),
-                (None, Some(end)) => Ok(Some(end.into())),
-                _ => Ok(None)
-            }?}
+            ast::StmtKind::For { target, iter, body, orelse, type_comment }
         };
-        Ok(ast::Stmt::new(location, node))
+        ast::Stmt::new(location, node)
     },
 };
 
@@ -1215,6 +1194,7 @@ Constant: ast::Constant = {
     <value:int> => ast::Constant::Int(value),
     <value:float> => ast::Constant::Float(value),
     <s:complex> => ast::Constant::Complex { real: s.0, imag: s.1 },
+    <com:nac3comment> => ast::Constant::ConfigComment(com),
 };
 
 Bytes: Vec<u8> = {
