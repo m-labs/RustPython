@@ -222,7 +222,14 @@ class Foo(A, B):
 a: int # nac3: sf1
 # nac3: sdf4
 for i in (1, '12'): # nac3: sf2
-    a: int";
+    a: int
+# nac3: 3
+# nac3: 5
+while i < 2: # nac3: 4
+    pass
+    # nac3: expr1
+    # nac3: expr3
+    1 + 2 # nac3: expr2";
         insta::assert_debug_snapshot!(parse_program(&source).unwrap());
     }
 }

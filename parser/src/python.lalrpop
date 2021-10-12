@@ -68,7 +68,7 @@ SmallStatement: ast::Stmt = {
 };
 
 PassStatement: ast::Stmt = {
-    <location:@L> "pass" => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "pass" <nac3com_end:config_comment?> => {
         ast::Stmt {
             location,
             custom: (),
@@ -78,7 +78,7 @@ PassStatement: ast::Stmt = {
 };
 
 DelStatement: ast::Stmt = {
-    <location:@L> "del" <targets:ExpressionList2> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "del" <targets:ExpressionList2> <nac3com_end:config_comment?> => {
         ast::Stmt {
             location,
             custom: (),
@@ -88,7 +88,7 @@ DelStatement: ast::Stmt = {
 };
 
 ExpressionStatement: ast::Stmt = {
-    <location:@L> <expression:TestOrStarExprList> <suffix:AssignSuffix*> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <expression:TestOrStarExprList> <suffix:AssignSuffix*> <nac3com_end:config_comment?> => {
         // Just an expression, no assignment:
         if suffix.is_empty() {
             ast::Stmt {
@@ -113,7 +113,7 @@ ExpressionStatement: ast::Stmt = {
             }
         }
     },
-    <location:@L> <target:TestOrStarExprList> <op:AugAssign> <rhs:TestListOrYieldExpr> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <target:TestOrStarExprList> <op:AugAssign> <rhs:TestListOrYieldExpr> <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
@@ -190,28 +190,28 @@ AugAssign: ast::Operator = {
 };
 
 FlowStatement: ast::Stmt = {
-    <location:@L> "break" => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "break" <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::Break,
         }
     },
-    <location:@L> "continue" => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "continue" <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::Continue,
         }
     },
-    <location:@L> "return" <value:TestList?> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "return" <value:TestList?> <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::Return { value: value.map(Box::new) },
         }
     },
-    <location:@L> <expression:YieldExpr> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <expression:YieldExpr> <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
@@ -222,14 +222,14 @@ FlowStatement: ast::Stmt = {
 };
 
 RaiseStatement: ast::Stmt = {
-    <location:@L> "raise" => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "raise" <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::Raise { exc: None, cause: None },
         }
     },
-    <location:@L> "raise" <t:Test> <c:("from" Test)?> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "raise" <t:Test> <c:("from" Test)?> <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
@@ -239,14 +239,14 @@ RaiseStatement: ast::Stmt = {
 };
 
 ImportStatement: ast::Stmt = {
-    <location:@L> "import" <names: OneOrMore<ImportAsAlias<DottedName>>> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "import" <names: OneOrMore<ImportAsAlias<DottedName>>> <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::Import { names },
         }
     },
-    <location:@L> "from" <source:ImportFromLocation> "import" <names: ImportAsNames> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "from" <source:ImportFromLocation> "import" <names: ImportAsNames> <nac3com_end:config_comment?> => {
         let (level, module) = source;
         ast::Stmt {
             custom: (),
@@ -304,7 +304,7 @@ DottedName: String = {
 };
 
 GlobalStatement: ast::Stmt = {
-    <location:@L> "global" <names:OneOrMore<Identifier>> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "global" <names:OneOrMore<Identifier>> <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
@@ -314,7 +314,7 @@ GlobalStatement: ast::Stmt = {
 };
 
 NonlocalStatement: ast::Stmt = {
-    <location:@L> "nonlocal" <names:OneOrMore<Identifier>> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "nonlocal" <names:OneOrMore<Identifier>> <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
@@ -324,7 +324,7 @@ NonlocalStatement: ast::Stmt = {
 };
 
 AssertStatement: ast::Stmt = {
-    <location:@L> "assert" <test:Test> <msg: ("," Test)?> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "assert" <test:Test> <msg: ("," Test)?> <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
@@ -347,7 +347,7 @@ CompoundStatement: ast::Stmt = {
 };
 
 IfStatement: ast::Stmt = {
-    <location:@L> "if" <test:NamedExpressionTest> ":" <body:Suite> <s2:(@L "elif" NamedExpressionTest ":" Suite)*> <s3:("else" ":" Suite)?> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "if" <test:NamedExpressionTest> ":" <nac3com_end:config_comment?> <body:Suite> <s2:(@L "elif" NamedExpressionTest ":" Suite)*> <s3:("else" ":" Suite)?> => {
         // Determine last else:
         let mut last = s3.map(|s| s.2).unwrap_or_default();
 
@@ -411,7 +411,7 @@ ForStatement: ast::Stmt = {
 };
 
 TryStatement: ast::Stmt = {
-    <location:@L> "try" ":" <body:Suite> <handlers:ExceptClause+> <else_suite:("else" ":" Suite)?> <finally:("finally" ":" Suite)?> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "try" ":" <nac3com_end:config_comment?> <body:Suite> <handlers:ExceptClause+> <else_suite:("else" ":" Suite)?> <finally:("finally" ":" Suite)?> => {
         let orelse = else_suite.map(|s| s.2).unwrap_or_default();
         let finalbody = finally.map(|s| s.2).unwrap_or_default();
         ast::Stmt {
@@ -425,7 +425,7 @@ TryStatement: ast::Stmt = {
             },
         }
     },
-    <location:@L> "try" ":" <body:Suite> <finally:("finally" ":" Suite)> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> "try" ":" <nac3com_end:config_comment?> <body:Suite> <finally:("finally" ":" Suite)> => {
         let handlers = vec![];
         let orelse = vec![];
         let finalbody = finally.2;
@@ -466,7 +466,7 @@ ExceptClause: ast::Excepthandler = {
 };
 
 WithStatement: ast::Stmt = {
-    <location:@L> <is_async:"async"?> "with" <items:OneOrMore<WithItem>> ":" <body:Suite> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <is_async:"async"?> "with" <items:OneOrMore<WithItem>> ":" <nac3com_end:config_comment?> <body:Suite> => {
         let type_comment = None;
         let node = if is_async.is_some() {
             ast::StmtKind::AsyncWith { items, body, type_comment }
@@ -486,7 +486,7 @@ WithItem: ast::Withitem = {
 };
 
 FuncDef: ast::Stmt = {
-    <decorator_list:Decorator*> <location:@L> <is_async:"async"?> "def" <name:Identifier> <args:Parameters> <r:("->" Test)?> ":" <body:Suite> => {
+    <decorator_list:Decorator*> <location:@L> <nac3com_above:(config_comment "\n")*> <is_async:"async"?> "def" <name:Identifier> <args:Parameters> <r:("->" Test)?> ":" <nac3com_end:config_comment?> <body:Suite> => {
         let args = Box::new(args);
         let returns = r.map(|x| Box::new(x.1));
         let type_comment = None;
@@ -633,7 +633,7 @@ KwargParameter<ArgType>: Option<Box<ast::Arg>> = {
 };
 
 ClassDef: ast::Stmt = {
-    <decorator_list:Decorator*> <location:@L> "class" <name:Identifier> <a:("(" ArgumentList ")")?> ":" <body:Suite> => {
+    <decorator_list:Decorator*> <location:@L> <nac3com_above:(config_comment "\n")*> "class" <name:Identifier> <a:("(" ArgumentList ")")?> ":" <nac3com_end:config_comment?> <body:Suite> => {
         let (bases, keywords) = match a {
             Some((_, arg, _)) => (arg.args, arg.keywords),
             None => (vec![], vec![]),

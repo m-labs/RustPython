@@ -140,4 +140,112 @@ expression: parse_program(&source).unwrap()
             ],
         },
     },
+    Located {
+        location: Location {
+            row: 5,
+            column: 8,
+        },
+        custom: (),
+        node: While {
+            test: Located {
+                location: Location {
+                    row: 7,
+                    column: 9,
+                },
+                custom: (),
+                node: Compare {
+                    left: Located {
+                        location: Location {
+                            row: 7,
+                            column: 7,
+                        },
+                        custom: (),
+                        node: Name {
+                            id: "i",
+                            ctx: Load,
+                        },
+                    },
+                    ops: [
+                        Lt,
+                    ],
+                    comparators: [
+                        Located {
+                            location: Location {
+                                row: 7,
+                                column: 11,
+                            },
+                            custom: (),
+                            node: Constant {
+                                value: Int(
+                                    2,
+                                ),
+                                kind: None,
+                            },
+                        },
+                    ],
+                },
+            },
+            body: [
+                Located {
+                    location: Location {
+                        row: 8,
+                        column: 5,
+                    },
+                    custom: (),
+                    node: Pass,
+                },
+                Located {
+                    location: Location {
+                        row: 9,
+                        column: 12,
+                    },
+                    custom: (),
+                    node: Expr {
+                        value: Located {
+                            location: Location {
+                                row: 11,
+                                column: 7,
+                            },
+                            custom: (),
+                            node: BinOp {
+                                left: Located {
+                                    location: Location {
+                                        row: 11,
+                                        column: 5,
+                                    },
+                                    custom: (),
+                                    node: Constant {
+                                        value: Int(
+                                            1,
+                                        ),
+                                        kind: None,
+                                    },
+                                },
+                                op: Add,
+                                right: Located {
+                                    location: Location {
+                                        row: 11,
+                                        column: 9,
+                                    },
+                                    custom: (),
+                                    node: Constant {
+                                        value: Int(
+                                            2,
+                                        ),
+                                        kind: None,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            ],
+            orelse: [],
+            config_comment: [
+                "3",
+                "5",
+                "4",
+            ],
+        },
+    },
 ]
