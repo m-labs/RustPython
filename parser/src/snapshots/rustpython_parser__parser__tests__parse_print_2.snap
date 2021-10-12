@@ -60,6 +60,7 @@ expression: parse_ast
                     keywords: [],
                 },
             },
+            config_comment: [],
         },
     },
 ]

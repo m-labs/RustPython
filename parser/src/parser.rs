@@ -226,10 +226,15 @@ for i in (1, '12'): # nac3: sf2
 # nac3: 3
 # nac3: 5
 while i < 2: # nac3: 4
+    # nac3: real pass
     pass
     # nac3: expr1
     # nac3: expr3
-    1 + 2 # nac3: expr2";
+    1 + 2 # nac3: expr2
+    # nac3: if3
+    # nac3: if1
+    if 1: # nac3: if2
+        3";
         insta::assert_debug_snapshot!(parse_program(&source).unwrap());
     }
 }

@@ -238,7 +238,9 @@ expression: parse_program(&source).unwrap()
                                                 column: 13,
                                             },
                                             custom: (),
-                                            node: Pass,
+                                            node: Pass {
+                                                config_comment: [],
+                                            },
                                         },
                                     ],
                                     orelse: [],
@@ -252,10 +254,12 @@ expression: parse_program(&source).unwrap()
                         decorator_list: [],
                         returns: None,
                         type_comment: None,
+                        config_comment: [],
                     },
                 },
             ],
             decorator_list: [],
+            config_comment: [],
         },
     },
 ]

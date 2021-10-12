@@ -86,6 +86,7 @@ expression: parse_program(&source).unwrap()
                 },
             },
             type_comment: None,
+            config_comment: [],
         },
     },
 ]

@@ -72,7 +72,12 @@ PassStatement: ast::Stmt = {
         ast::Stmt {
             location,
             custom: (),
-            node: ast::StmtKind::Pass,
+            node: ast::StmtKind::Pass { config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            },
         }
     },
 };
@@ -82,7 +87,14 @@ DelStatement: ast::Stmt = {
         ast::Stmt {
             location,
             custom: (),
-            node: ast::StmtKind::Delete { targets },
+            node: ast::StmtKind::Delete {
+                targets,
+                config_comment: nac3com_above
+                    .into_iter()
+                    .map(|(com, _)| com)
+                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                    .collect(),
+            },
         }
     },
 };
@@ -94,7 +106,14 @@ ExpressionStatement: ast::Stmt = {
             ast::Stmt {
                 custom: (),
                 location,
-                node: ast::StmtKind::Expr { value: Box::new(expression) }
+                node: ast::StmtKind::Expr {
+                    value: Box::new(expression),
+                    config_comment: nac3com_above
+                        .into_iter()
+                        .map(|(com, _)| com)
+                        .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                        .collect(),
+                }
             }
         } else {
             let mut targets = vec![expression];
@@ -109,7 +128,13 @@ ExpressionStatement: ast::Stmt = {
             ast::Stmt {
                 custom: (),
                 location,
-                node: ast::StmtKind::Assign { targets, value, type_comment: None },
+                node: ast::StmtKind::Assign { targets, value, type_comment: None,
+                    config_comment: nac3com_above
+                        .into_iter()
+                        .map(|(com, _)| com)
+                        .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                        .collect()
+                    },
             }
         }
     },
@@ -120,7 +145,12 @@ ExpressionStatement: ast::Stmt = {
             node: ast::StmtKind::AugAssign {
                 target: Box::new(target),
                 op,
-                value: Box::new(rhs)
+                value: Box::new(rhs),
+                config_comment: nac3com_above
+                    .into_iter()
+                    .map(|(com, _)| com)
+                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                    .collect(),
             },
         }
     },
@@ -194,28 +224,48 @@ FlowStatement: ast::Stmt = {
         ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Break,
+            node: ast::StmtKind::Break { config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            },
         }
     },
     <location:@L> <nac3com_above:(config_comment "\n")*> "continue" <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Continue,
+            node: ast::StmtKind::Continue { config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            },
         }
     },
     <location:@L> <nac3com_above:(config_comment "\n")*> "return" <value:TestList?> <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Return { value: value.map(Box::new) },
+            node: ast::StmtKind::Return { value: value.map(Box::new), config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            },
         }
     },
     <location:@L> <nac3com_above:(config_comment "\n")*> <expression:YieldExpr> <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Expr { value: Box::new(expression) },
+            node: ast::StmtKind::Expr { value: Box::new(expression), config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            },
         }
     },
     RaiseStatement,
@@ -226,14 +276,24 @@ RaiseStatement: ast::Stmt = {
         ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Raise { exc: None, cause: None },
+            node: ast::StmtKind::Raise { exc: None, cause: None, config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            },
         }
     },
     <location:@L> <nac3com_above:(config_comment "\n")*> "raise" <t:Test> <c:("from" Test)?> <nac3com_end:config_comment?> => {
         ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Raise { exc: Some(Box::new(t)), cause: c.map(|x| Box::new(x.1)) },
+            node: ast::StmtKind::Raise { exc: Some(Box::new(t)), cause: c.map(|x| Box::new(x.1)), config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            },
         }
     },
 };
@@ -243,7 +303,12 @@ ImportStatement: ast::Stmt = {
         ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Import { names },
+            node: ast::StmtKind::Import { names, config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            },
         }
     },
     <location:@L> <nac3com_above:(config_comment "\n")*> "from" <source:ImportFromLocation> "import" <names: ImportAsNames> <nac3com_end:config_comment?> => {
@@ -254,7 +319,12 @@ ImportStatement: ast::Stmt = {
             node: ast::StmtKind::ImportFrom {
                 level,
                 module: module.map(|s| s.into()),
-                names
+                names,
+                config_comment: nac3com_above
+                    .into_iter()
+                    .map(|(com, _)| com)
+                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                    .collect(),
             },
         }
     },
@@ -308,7 +378,12 @@ GlobalStatement: ast::Stmt = {
         ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Global { names }
+            node: ast::StmtKind::Global { names, config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            }
         }
     },
 };
@@ -318,7 +393,12 @@ NonlocalStatement: ast::Stmt = {
         ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Nonlocal { names }
+            node: ast::StmtKind::Nonlocal { names, config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            }
         }
     },
 };
@@ -330,7 +410,12 @@ AssertStatement: ast::Stmt = {
             location,
             node: ast::StmtKind::Assert {
                 test: Box::new(test),
-                msg: msg.map(|e| Box::new(e.1))
+                msg: msg.map(|e| Box::new(e.1)),
+                config_comment: nac3com_above
+                    .into_iter()
+                    .map(|(com, _)| com)
+                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                    .collect(),
             }
         }
     },
@@ -356,7 +441,12 @@ IfStatement: ast::Stmt = {
             let x = ast::Stmt {
                 custom: (),
                 location: i.0,
-                node: ast::StmtKind::If { test: Box::new(i.2), body: i.4, orelse: last },
+                node: ast::StmtKind::If { test: Box::new(i.2), body: i.4, orelse: last, config_comment: nac3com_above.clone()
+                    .into_iter()
+                    .map(|(com, _)| com)
+                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                    .collect()
+                },
             };
             last = vec![x];
         }
@@ -364,7 +454,12 @@ IfStatement: ast::Stmt = {
         ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::If { test: Box::new(test), body, orelse: last }
+            node: ast::StmtKind::If { test: Box::new(test), body, orelse: last, config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            }
         }
     },
 };
@@ -396,7 +491,12 @@ ForStatement: ast::Stmt = {
         let iter = Box::new(iter);
         let type_comment = None;
         let node = if is_async.is_some() {
-            ast::StmtKind::AsyncFor { target, iter, body, orelse, type_comment }
+            ast::StmtKind::AsyncFor { target, iter, body, orelse, type_comment, config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            }
         } else {
             ast::StmtKind::For { target, iter, body, orelse, type_comment,
                 config_comment: nac3com_above
@@ -422,6 +522,11 @@ TryStatement: ast::Stmt = {
                 handlers,
                 orelse,
                 finalbody,
+                config_comment: nac3com_above
+                    .into_iter()
+                    .map(|(com, _)| com)
+                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                    .collect(),
             },
         }
     },
@@ -437,6 +542,11 @@ TryStatement: ast::Stmt = {
                 handlers,
                 orelse,
                 finalbody,
+                config_comment: nac3com_above
+                    .into_iter()
+                    .map(|(com, _)| com)
+                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                    .collect(),
             },
         }
     },
@@ -469,9 +579,19 @@ WithStatement: ast::Stmt = {
     <location:@L> <nac3com_above:(config_comment "\n")*> <is_async:"async"?> "with" <items:OneOrMore<WithItem>> ":" <nac3com_end:config_comment?> <body:Suite> => {
         let type_comment = None;
         let node = if is_async.is_some() {
-            ast::StmtKind::AsyncWith { items, body, type_comment }
+            ast::StmtKind::AsyncWith { items, body, type_comment, config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            }
         } else {
-            ast::StmtKind::With { items, body, type_comment }
+            ast::StmtKind::With { items, body, type_comment, config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            }
         };
         ast::Stmt::new(location, node)
     },
@@ -491,9 +611,19 @@ FuncDef: ast::Stmt = {
         let returns = r.map(|x| Box::new(x.1));
         let type_comment = None;
         let node = if is_async.is_some() {
-            ast::StmtKind::AsyncFunctionDef { name, args, body, decorator_list, returns, type_comment }
+            ast::StmtKind::AsyncFunctionDef { name, args, body, decorator_list, returns, type_comment, config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            }
         } else {
-            ast::StmtKind::FunctionDef { name, args, body, decorator_list, returns, type_comment }
+            ast::StmtKind::FunctionDef { name, args, body, decorator_list, returns, type_comment, config_comment: nac3com_above
+                .into_iter()
+                .map(|(com, _)| com)
+                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                .collect()
+            }
         };
         ast::Stmt::new(location, node)
     },
@@ -647,6 +777,11 @@ ClassDef: ast::Stmt = {
                 keywords,
                 body,
                 decorator_list,
+                config_comment: nac3com_above
+                    .into_iter()
+                    .map(|(com, _)| com)
+                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                    .collect(),
             },
         }
     },
