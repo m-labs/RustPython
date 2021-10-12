@@ -69,9 +69,9 @@ expression: parse_program(&source).unwrap()
                         },
                         value: None,
                         simple: true,
-                        nac3comment: Some(
+                        config_comment: [
                             "no_warn_unused_1",
-                        ),
+                        ],
                     },
                 },
                 Located {
@@ -105,9 +105,9 @@ expression: parse_program(&source).unwrap()
                         },
                         value: None,
                         simple: true,
-                        nac3comment: Some(
+                        config_comment: [
                             "no_warn_unused_2",
-                        ),
+                        ],
                     },
                 },
                 Located {
@@ -141,7 +141,7 @@ expression: parse_program(&source).unwrap()
                         },
                         value: None,
                         simple: true,
-                        nac3comment: None,
+                        config_comment: [],
                     },
                 },
                 Located {
@@ -243,9 +243,9 @@ expression: parse_program(&source).unwrap()
                                     ],
                                     orelse: [],
                                     type_comment: None,
-                                    nac3comment: Some(
+                                    config_comment: [
                                         "unroll",
-                                    ),
+                                    ],
                                 },
                             },
                         ],

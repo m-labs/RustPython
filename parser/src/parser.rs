@@ -72,7 +72,7 @@ pub fn parse_expression(source: &str) -> Result<ast::Expr, ParseError> {
 
 // Parse a given source code
 pub fn parse(source: &str, mode: Mode) -> Result<ast::Mod, ParseError> {
-    let lxr = lexer::make_tokenizer(source);
+    let lxr = lexer::make_tokenizer(source, Some(" nac3:"));
     let marker_token = (Default::default(), mode.to_marker(), Default::default());
     let tokenizer = iter::once(Ok(marker_token)).chain(lxr);
 
@@ -208,5 +208,15 @@ class Foo(A, B):
                 # nac3: cannot comment
                 a = 3";
         parse_program(&source).unwrap();
+    }
+    
+    #[test]
+    fn test_more_comment() {
+        let source = "\
+a: int # nac3: sf1
+# nac3: sdf4
+for i in (1, '12'): # nac3: sf2
+    a: int";
+        insta::assert_debug_snapshot!(parse_program(&source).unwrap());
     }
 }
