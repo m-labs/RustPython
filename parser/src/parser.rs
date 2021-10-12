@@ -114,7 +114,13 @@ mod tests {
 
     #[test]
     fn test_parse_if_elif_else() {
-        let source = String::from("if 1: 10\nelif 2: 20\nelse: 30");
+        let source = String::from("\
+if 1:
+    10
+elif 2:
+    20
+else:
+    30");
         let parse_ast = parse_program(&source).unwrap();
         insta::assert_debug_snapshot!(parse_ast);
     }
