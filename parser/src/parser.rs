@@ -20,8 +20,8 @@ use crate::python;
  */
 
 /// Parse a full python program, containing usually multiple lines.
-pub fn parse_program(source: &str) -> Result<ast::Suite, ParseError> {
-    parse(source, Mode::Module).map(|top| match top {
+pub fn parse_program(source: &str, config_comment_prefix: Option<&'static str>) -> Result<ast::Suite, ParseError> {
+    parse(source, Mode::Module, config_comment_prefix).map(|top| match top {
         ast::Mod::Module { body, .. } => body,
         _ => unreachable!(),
     })
@@ -33,7 +33,7 @@ pub fn parse_program(source: &str) -> Result<ast::Suite, ParseError> {
 /// ```
 /// extern crate num_bigint;
 /// use rustpython_parser::{parser, ast};
-/// let expr = parser::parse_expression("1 + 2").unwrap();
+/// let expr = parser::parse_expression("1 + 2", Some("prefix")).unwrap();
 ///
 /// assert_eq!(
 ///     expr,
@@ -63,16 +63,16 @@ pub fn parse_program(source: &str) -> Result<ast::Suite, ParseError> {
 /// );
 ///
 /// ```
-pub fn parse_expression(source: &str) -> Result<ast::Expr, ParseError> {
-    parse(source, Mode::Expression).map(|top| match top {
+pub fn parse_expression(source: &str, config_comment_prefix: Option<&'static str>) -> Result<ast::Expr, ParseError> {
+    parse(source, Mode::Expression, config_comment_prefix).map(|top| match top {
         ast::Mod::Expression { body } => *body,
         _ => unreachable!(),
     })
 }
 
 // Parse a given source code
-pub fn parse(source: &str, mode: Mode) -> Result<ast::Mod, ParseError> {
-    let lxr = lexer::make_tokenizer(source, Some(" nac3:"));
+pub fn parse(source: &str, mode: Mode, config_comment_prefix: Option<&'static str>) -> Result<ast::Mod, ParseError> {
+    let lxr = lexer::make_tokenizer(source, config_comment_prefix);
     let marker_token = (Default::default(), mode.to_marker(), Default::default());
     let tokenizer = iter::once(Ok(marker_token)).chain(lxr);
 
@@ -87,28 +87,28 @@ mod tests {
 
     #[test]
     fn test_parse_empty() {
-        let parse_ast = parse_program("").unwrap();
+        let parse_ast = parse_program("", Some(" nac3:")).unwrap();
         insta::assert_debug_snapshot!(parse_ast);
     }
 
     #[test]
     fn test_parse_print_hello() {
         let source = String::from("print('Hello world')");
-        let parse_ast = parse_program(&source).unwrap();
+        let parse_ast = parse_program(&source, Some(" nac3:")).unwrap();
         insta::assert_debug_snapshot!(parse_ast);
     }
 
     #[test]
     fn test_parse_print_2() {
         let source = String::from("print('Hello world', 2)");
-        let parse_ast = parse_program(&source).unwrap();
+        let parse_ast = parse_program(&source, Some(" nac3:")).unwrap();
         insta::assert_debug_snapshot!(parse_ast);
     }
 
     #[test]
     fn test_parse_kwargs() {
         let source = String::from("my_func('positional', keyword=2)");
-        let parse_ast = parse_program(&source).unwrap();
+        let parse_ast = parse_program(&source, Some(" nac3:")).unwrap();
         insta::assert_debug_snapshot!(parse_ast);
     }
 
@@ -121,14 +121,14 @@ elif 2:
     20
 else:
     30");
-        let parse_ast = parse_program(&source).unwrap();
+        let parse_ast = parse_program(&source, Some(" nac3:")).unwrap();
         insta::assert_debug_snapshot!(parse_ast);
     }
 
     #[test]
     fn test_parse_lambda() {
         let source = "lambda x, y: x * y"; // lambda(x, y): x * y";
-        let parse_ast = parse_program(&source).unwrap();
+        let parse_ast = parse_program(&source, Some(" nac3:")).unwrap();
         insta::assert_debug_snapshot!(parse_ast);
     }
 
@@ -136,7 +136,7 @@ else:
     fn test_parse_tuples() {
         let source = "a, b = 4, 5";
 
-        insta::assert_debug_snapshot!(parse_program(&source).unwrap());
+        insta::assert_debug_snapshot!(parse_program(&source, Some(" nac3:")).unwrap());
     }
 
     #[test]
@@ -147,27 +147,27 @@ class Foo(A, B):
   pass
  def method_with_default(self, arg='default'):
   pass";
-        insta::assert_debug_snapshot!(parse_program(&source).unwrap());
+        insta::assert_debug_snapshot!(parse_program(&source, Some(" nac3:")).unwrap());
     }
 
     #[test]
     fn test_parse_dict_comprehension() {
         let source = String::from("{x1: x2 for y in z}");
-        let parse_ast = parse_expression(&source).unwrap();
+        let parse_ast = parse_expression(&source, Some(" nac3:")).unwrap();
         insta::assert_debug_snapshot!(parse_ast);
     }
 
     #[test]
     fn test_parse_list_comprehension() {
         let source = String::from("[x for y in z]");
-        let parse_ast = parse_expression(&source).unwrap();
+        let parse_ast = parse_expression(&source, Some(" nac3:")).unwrap();
         insta::assert_debug_snapshot!(parse_ast);
     }
 
     #[test]
     fn test_parse_double_list_comprehension() {
         let source = String::from("[x for y, y2 in z for a in b if a < 5 if a > 10]");
-        let parse_ast = parse_expression(&source).unwrap();
+        let parse_ast = parse_expression(&source, Some(" nac3:")).unwrap();
         insta::assert_debug_snapshot!(parse_ast);
     }
 
@@ -188,7 +188,7 @@ class Foo(A, B):
         # nac3: unroll
         for p in ('123', 2):
             pass";
-        insta::assert_debug_snapshot!(parse_program(&source).unwrap());
+        insta::assert_debug_snapshot!(parse_program(&source, Some(" nac3:")).unwrap());
     }
 
     #[test]
@@ -213,7 +213,7 @@ class Foo(A, B):
                 b = 3
                 # nac3: cannot comment
                 a = 3";
-        parse_program(&source).unwrap();
+        parse_program(&source, Some(" nac3:")).unwrap();
     }
     
     #[test]
@@ -235,7 +235,7 @@ while i < 2: # nac3: 4
     # nac3: if1
     if 1: # nac3: if2
         3";
-        insta::assert_debug_snapshot!(parse_program(&source).unwrap());
+        insta::assert_debug_snapshot!(parse_program(&source, Some(" nac3:")).unwrap());
     }
 
     #[test]
@@ -247,7 +247,7 @@ for i in ('12'):
     # nac3: cc
     print(i)
 ";
-        insta::assert_debug_snapshot!(parse_program(&source).unwrap());
+        insta::assert_debug_snapshot!(parse_program(&source, Some(" nac3:")).unwrap());
     }
     
     #[test]
@@ -256,7 +256,7 @@ for i in ('12'):
 while 1:
     a + 1;
     # nac3: pass
-    pass;
+    pass; pass # nac3: second pass
     # nac3: assign
     a = 3; b = a + 2
     # nac3: del
@@ -267,6 +267,19 @@ while 1:
 if 1: # nac3: s
     a
 ";
-        insta::assert_debug_snapshot!(parse_program(&source).unwrap());
+        insta::assert_debug_snapshot!(parse_program(&source, Some(" nac3:")).unwrap());
+    }
+
+    #[test]
+    fn test_sample_comment() {
+        let source = "\
+# nac3: while1 
+# nac3: while2 
+# normal comment 
+while test: # nac3: while3 
+    # nac3: simple assign0 
+    a = 3 # nac3: simple assign1
+";
+        insta::assert_debug_snapshot!(parse_program(&source, Some(" nac3:")).unwrap());
     }
 }

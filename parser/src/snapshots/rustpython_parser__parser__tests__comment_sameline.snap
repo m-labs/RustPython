@@ -1,6 +1,6 @@
 ---
 source: parser/src/parser.rs
-expression: parse_program(&source).unwrap()
+expression: "parse_program(&source, Some(\" nac3:\")).unwrap()"
 
 ---
 [
@@ -78,6 +78,18 @@ expression: parse_program(&source).unwrap()
                     node: Pass {
                         config_comment: [
                             "pass",
+                        ],
+                    },
+                },
+                Located {
+                    location: Location {
+                        row: 4,
+                        column: 11,
+                    },
+                    custom: (),
+                    node: Pass {
+                        config_comment: [
+                            "second pass",
                         ],
                     },
                 },
