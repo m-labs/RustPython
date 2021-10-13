@@ -11,6 +11,7 @@ use crate::function::{ArgumentList, parse_args, parse_params};
 use crate::error::LexicalError;
 use crate::error::LexicalErrorType;
 use crate::lexer;
+use crate::config_comment_helper::*;
 
 use lalrpop_util::ParseError;
 use num_bigint::BigInt;
@@ -39,7 +40,7 @@ FileLine: ast::Suite = {
 };
 
 Suite: ast::Suite = {
-    // SimpleStatement,
+    SimpleStatement,
     "\n" Indent <s:Statement+> Dedent => s.into_iter().flatten().collect(),
 };
 
@@ -68,34 +69,51 @@ SmallStatement: ast::Stmt = {
 };
 
 PassStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> "pass" <nac3com_end:config_comment?> => {
-        ast::Stmt {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "pass" <nac3com_end:config_comment?> =>? {
+        Ok(ast::Stmt {
             location,
             custom: (),
-            node: ast::StmtKind::Pass { config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
-            },
-        }
+            node: ast::StmtKind::Pass { config_comment: {
+                if location.column() != stmt_loc.column() {
+                    return Err(ParseError::User {
+                        error: LexicalError {
+                            location,
+                            error: LexicalErrorType::OtherError(
+                                format!(
+                                    "config comment at top must have the same indentation with what it applies, comment at {:?}, statement at {:?}",
+                                    location,
+                                    stmt_loc,
+                                )
+                                .into()
+                            )
+                        }
+                    })
+                };
+                nac3com_above
+                    .into_iter()
+                    .map(|(com, _)| com)
+                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                    .collect()
+            } },
+        })
     },
 };
 
 DelStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> "del" <targets:ExpressionList2> <nac3com_end:config_comment?> => {
-        ast::Stmt {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "del" <targets:ExpressionList2> <nac3com_end:config_comment?> =>? {
+        Ok(ast::Stmt {
             location,
             custom: (),
             node: ast::StmtKind::Delete {
                 targets,
-                config_comment: nac3com_above
-                    .into_iter()
-                    .map(|(com, _)| com)
-                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                    .collect(),
+                // config_comment: nac3com_above
+                //     .into_iter()
+                //     .map(|(com, _)| com)
+                //     .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
+                //     .collect(),
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
-        }
+        })
     },
 };
 

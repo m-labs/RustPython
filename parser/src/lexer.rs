@@ -425,6 +425,9 @@ where
         let (mut prefix, mut is_comment) = self
             .config_comment_prefix
             .map_or_else(|| ("".chars(), false), |v| (v.chars(), true));
+        // for the correct location of config comment
+        let mut start_loc = self.location;
+        start_loc.go_left();
         loop {
             match self.chr0 {
                 Some('\n') => return None,
@@ -435,7 +438,6 @@ where
                     } else {
                         // done checking prefix, if is comment then return the spanned
                         if is_comment {
-                            let start_loc = self.location;
                             let mut content = String::new();
                             loop {
                                 match self.chr0 {

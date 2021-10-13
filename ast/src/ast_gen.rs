@@ -72,7 +72,7 @@ pub fn get_str_from_ref<'a>(lock: &'a MutexGuard<Interner>, id: StrRef) -> &'a s
     lock.resolve(id.0).unwrap()
 }
 
-type Ident = StrRef;
+pub type Ident = StrRef;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Located<T, U = ()> {

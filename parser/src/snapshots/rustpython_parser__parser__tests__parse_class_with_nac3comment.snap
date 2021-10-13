@@ -77,7 +77,7 @@ expression: parse_program(&source).unwrap()
                 Located {
                     location: Location {
                         row: 5,
-                        column: 12,
+                        column: 5,
                     },
                     custom: (),
                     node: AnnAssign {
@@ -178,7 +178,7 @@ expression: parse_program(&source).unwrap()
                             Located {
                                 location: Location {
                                     row: 12,
-                                    column: 16,
+                                    column: 9,
                                 },
                                 custom: (),
                                 node: For {

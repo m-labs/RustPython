@@ -237,4 +237,32 @@ while i < 2: # nac3: 4
         3";
         insta::assert_debug_snapshot!(parse_program(&source).unwrap());
     }
+
+    #[test]
+    fn test_comment_semicolon() {
+        let source = "\
+for i in ('12'):
+    # nac3: comment
+    i = i; # nac3: cc
+    print(i)
+";
+        insta::assert_debug_snapshot!(parse_program(&source).unwrap());
+    }
+    
+    #[test]
+    fn test_comment_sameline() {
+        let source = "\
+while 1:
+    a + 1;
+    # nac3: pass
+    pass; # nac3: assign
+    a = 3;
+    # nac3: del
+    del a
+
+if 1: # nac3: s
+    a
+";
+        insta::assert_debug_snapshot!(parse_program(&source).unwrap());
+    }
 }
