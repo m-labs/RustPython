@@ -243,7 +243,8 @@ while i < 2: # nac3: 4
         let source = "\
 for i in ('12'):
     # nac3: comment
-    i = i; # nac3: cc
+    i = i;
+    # nac3: cc
     print(i)
 ";
         insta::assert_debug_snapshot!(parse_program(&source).unwrap());
@@ -255,10 +256,13 @@ for i in ('12'):
 while 1:
     a + 1;
     # nac3: pass
-    pass; # nac3: assign
-    a = 3;
+    pass;
+    # nac3: assign
+    a = 3; b = a + 2
     # nac3: del
     del a
+    # nac3: sameline if
+    if 1: b = b + 3
 
 if 1: # nac3: s
     a

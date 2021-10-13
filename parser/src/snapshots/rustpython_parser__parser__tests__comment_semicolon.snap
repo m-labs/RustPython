@@ -75,21 +75,21 @@ expression: parse_program(&source).unwrap()
                 },
                 Located {
                     location: Location {
-                        row: 3,
-                        column: 12,
+                        row: 4,
+                        column: 5,
                     },
                     custom: (),
                     node: Expr {
                         value: Located {
                             location: Location {
-                                row: 4,
+                                row: 5,
                                 column: 10,
                             },
                             custom: (),
                             node: Call {
                                 func: Located {
                                     location: Location {
-                                        row: 4,
+                                        row: 5,
                                         column: 5,
                                     },
                                     custom: (),
@@ -101,7 +101,7 @@ expression: parse_program(&source).unwrap()
                                 args: [
                                     Located {
                                         location: Location {
-                                            row: 4,
+                                            row: 5,
                                             column: 11,
                                         },
                                         custom: (),

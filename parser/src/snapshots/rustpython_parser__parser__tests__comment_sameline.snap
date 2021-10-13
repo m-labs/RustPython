@@ -83,15 +83,15 @@ expression: parse_program(&source).unwrap()
                 },
                 Located {
                     location: Location {
-                        row: 4,
-                        column: 11,
+                        row: 5,
+                        column: 5,
                     },
                     custom: (),
                     node: Assign {
                         targets: [
                             Located {
                                 location: Location {
-                                    row: 5,
+                                    row: 6,
                                     column: 5,
                                 },
                                 custom: (),
@@ -103,7 +103,7 @@ expression: parse_program(&source).unwrap()
                         ],
                         value: Located {
                             location: Location {
-                                row: 5,
+                                row: 6,
                                 column: 9,
                             },
                             custom: (),
@@ -123,6 +123,64 @@ expression: parse_program(&source).unwrap()
                 Located {
                     location: Location {
                         row: 6,
+                        column: 12,
+                    },
+                    custom: (),
+                    node: Assign {
+                        targets: [
+                            Located {
+                                location: Location {
+                                    row: 6,
+                                    column: 12,
+                                },
+                                custom: (),
+                                node: Name {
+                                    id: "b",
+                                    ctx: Load,
+                                },
+                            },
+                        ],
+                        value: Located {
+                            location: Location {
+                                row: 6,
+                                column: 18,
+                            },
+                            custom: (),
+                            node: BinOp {
+                                left: Located {
+                                    location: Location {
+                                        row: 6,
+                                        column: 16,
+                                    },
+                                    custom: (),
+                                    node: Name {
+                                        id: "a",
+                                        ctx: Load,
+                                    },
+                                },
+                                op: Add,
+                                right: Located {
+                                    location: Location {
+                                        row: 6,
+                                        column: 20,
+                                    },
+                                    custom: (),
+                                    node: Constant {
+                                        value: Int(
+                                            2,
+                                        ),
+                                        kind: None,
+                                    },
+                                },
+                            },
+                        },
+                        type_comment: None,
+                        config_comment: [],
+                    },
+                },
+                Located {
+                    location: Location {
+                        row: 7,
                         column: 5,
                     },
                     custom: (),
@@ -130,7 +188,7 @@ expression: parse_program(&source).unwrap()
                         targets: [
                             Located {
                                 location: Location {
-                                    row: 7,
+                                    row: 8,
                                     column: 9,
                                 },
                                 custom: (),
@@ -145,6 +203,92 @@ expression: parse_program(&source).unwrap()
                         ],
                     },
                 },
+                Located {
+                    location: Location {
+                        row: 9,
+                        column: 5,
+                    },
+                    custom: (),
+                    node: If {
+                        test: Located {
+                            location: Location {
+                                row: 10,
+                                column: 8,
+                            },
+                            custom: (),
+                            node: Constant {
+                                value: Int(
+                                    1,
+                                ),
+                                kind: None,
+                            },
+                        },
+                        body: [
+                            Located {
+                                location: Location {
+                                    row: 10,
+                                    column: 11,
+                                },
+                                custom: (),
+                                node: Assign {
+                                    targets: [
+                                        Located {
+                                            location: Location {
+                                                row: 10,
+                                                column: 11,
+                                            },
+                                            custom: (),
+                                            node: Name {
+                                                id: "b",
+                                                ctx: Load,
+                                            },
+                                        },
+                                    ],
+                                    value: Located {
+                                        location: Location {
+                                            row: 10,
+                                            column: 17,
+                                        },
+                                        custom: (),
+                                        node: BinOp {
+                                            left: Located {
+                                                location: Location {
+                                                    row: 10,
+                                                    column: 15,
+                                                },
+                                                custom: (),
+                                                node: Name {
+                                                    id: "b",
+                                                    ctx: Load,
+                                                },
+                                            },
+                                            op: Add,
+                                            right: Located {
+                                                location: Location {
+                                                    row: 10,
+                                                    column: 19,
+                                                },
+                                                custom: (),
+                                                node: Constant {
+                                                    value: Int(
+                                                        3,
+                                                    ),
+                                                    kind: None,
+                                                },
+                                            },
+                                        },
+                                    },
+                                    type_comment: None,
+                                    config_comment: [],
+                                },
+                            },
+                        ],
+                        orelse: [],
+                        config_comment: [
+                            "sameline if",
+                        ],
+                    },
+                },
             ],
             orelse: [],
             config_comment: [],
@@ -152,14 +296,14 @@ expression: parse_program(&source).unwrap()
     },
     Located {
         location: Location {
-            row: 9,
+            row: 12,
             column: 1,
         },
         custom: (),
         node: If {
             test: Located {
                 location: Location {
-                    row: 9,
+                    row: 12,
                     column: 4,
                 },
                 custom: (),
@@ -173,14 +317,14 @@ expression: parse_program(&source).unwrap()
             body: [
                 Located {
                     location: Location {
-                        row: 10,
+                        row: 13,
                         column: 5,
                     },
                     custom: (),
                     node: Expr {
                         value: Located {
                             location: Location {
-                                row: 10,
+                                row: 13,
                                 column: 5,
                             },
                             custom: (),

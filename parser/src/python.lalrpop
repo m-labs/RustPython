@@ -73,28 +73,7 @@ PassStatement: ast::Stmt = {
         Ok(ast::Stmt {
             location,
             custom: (),
-            node: ast::StmtKind::Pass { config_comment: {
-                if location.column() != stmt_loc.column() {
-                    return Err(ParseError::User {
-                        error: LexicalError {
-                            location,
-                            error: LexicalErrorType::OtherError(
-                                format!(
-                                    "config comment at top must have the same indentation with what it applies, comment at {:?}, statement at {:?}",
-                                    location,
-                                    stmt_loc,
-                                )
-                                .into()
-                            )
-                        }
-                    })
-                };
-                nac3com_above
-                    .into_iter()
-                    .map(|(com, _)| com)
-                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                    .collect()
-            } },
+            node: ast::StmtKind::Pass { config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)? },
         })
     },
 };
@@ -106,11 +85,6 @@ DelStatement: ast::Stmt = {
             custom: (),
             node: ast::StmtKind::Delete {
                 targets,
-                // config_comment: nac3com_above
-                //     .into_iter()
-                //     .map(|(com, _)| com)
-                //     .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                //     .collect(),
                 config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
         })
@@ -118,21 +92,17 @@ DelStatement: ast::Stmt = {
 };
 
 ExpressionStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> <expression:TestOrStarExprList> <suffix:AssignSuffix*> <nac3com_end:config_comment?> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> <expression:TestOrStarExprList> <suffix:AssignSuffix*> <nac3com_end:config_comment?> =>? {
         // Just an expression, no assignment:
         if suffix.is_empty() {
-            ast::Stmt {
+            Ok(ast::Stmt {
                 custom: (),
                 location,
                 node: ast::StmtKind::Expr {
                     value: Box::new(expression),
-                    config_comment: nac3com_above
-                        .into_iter()
-                        .map(|(com, _)| com)
-                        .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                        .collect(),
+                    config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
                 }
-            }
+            })
         } else {
             let mut targets = vec![expression];
             let mut values = suffix;
@@ -143,36 +113,28 @@ ExpressionStatement: ast::Stmt = {
 
             let value = Box::new(values.into_iter().next().unwrap());
 
-            ast::Stmt {
+            Ok(ast::Stmt {
                 custom: (),
                 location,
                 node: ast::StmtKind::Assign { targets, value, type_comment: None,
-                    config_comment: nac3com_above
-                        .into_iter()
-                        .map(|(com, _)| com)
-                        .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                        .collect()
-                    },
-            }
+                    config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
+                },
+            })
         }
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> <target:TestOrStarExprList> <op:AugAssign> <rhs:TestListOrYieldExpr> <nac3com_end:config_comment?> => {
-        ast::Stmt {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> <target:TestOrStarExprList> <op:AugAssign> <rhs:TestListOrYieldExpr> <nac3com_end:config_comment?> =>? {
+        Ok(ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::AugAssign {
                 target: Box::new(target),
                 op,
                 value: Box::new(rhs),
-                config_comment: nac3com_above
-                    .into_iter()
-                    .map(|(com, _)| com)
-                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                    .collect(),
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
-        }
+        })
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> <target:Test> ":" <annotation:Test> <rhs:AssignSuffix?> <nac3com_end:config_comment?> =>? {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> <target:Test> ":" <annotation:Test> <rhs:AssignSuffix?> <nac3com_end:config_comment?> =>? {
         let simple = matches!(target.node, ast::ExprKind::Name { .. });
         Ok(ast::Stmt {
             custom: (),
@@ -182,11 +144,7 @@ ExpressionStatement: ast::Stmt = {
                 annotation: Box::new(annotation),
                 value: rhs.map(Box::new),
                 simple,
-                config_comment: nac3com_above
-                    .into_iter()
-                    .map(|(com, _)| com)
-                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                    .collect(),
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
         })
     },
@@ -238,113 +196,91 @@ AugAssign: ast::Operator = {
 };
 
 FlowStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> "break" <nac3com_end:config_comment?> => {
-        ast::Stmt {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "break" <nac3com_end:config_comment?> =>? {
+        Ok(ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Break { config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
-            },
-        }
+            node: ast::StmtKind::Break { config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)? },
+        })
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> "continue" <nac3com_end:config_comment?> => {
-        ast::Stmt {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "continue" <nac3com_end:config_comment?> =>? {
+        Ok(ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Continue { config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
-            },
-        }
+            node: ast::StmtKind::Continue { config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)? },
+        })
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> "return" <value:TestList?> <nac3com_end:config_comment?> => {
-        ast::Stmt {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "return" <value:TestList?> <nac3com_end:config_comment?> =>? {
+        Ok(ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Return { value: value.map(Box::new), config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
+            node: ast::StmtKind::Return {
+                value: value.map(Box::new),
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
-        }
+        })
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> <expression:YieldExpr> <nac3com_end:config_comment?> => {
-        ast::Stmt {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> <expression:YieldExpr> <nac3com_end:config_comment?> =>? {
+        Ok(ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Expr { value: Box::new(expression), config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
+            node: ast::StmtKind::Expr {
+                value: Box::new(expression),
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
-        }
+        })
     },
     RaiseStatement,
 };
 
 RaiseStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> "raise" <nac3com_end:config_comment?> => {
-        ast::Stmt {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "raise" <nac3com_end:config_comment?> =>? {
+        Ok(ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Raise { exc: None, cause: None, config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
+            node: ast::StmtKind::Raise {
+                exc: None,
+                cause: None,
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
-        }
+        })
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> "raise" <t:Test> <c:("from" Test)?> <nac3com_end:config_comment?> => {
-        ast::Stmt {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "raise" <t:Test> <c:("from" Test)?> <nac3com_end:config_comment?> =>? {
+        Ok(ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Raise { exc: Some(Box::new(t)), cause: c.map(|x| Box::new(x.1)), config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
+            node: ast::StmtKind::Raise {
+                exc: Some(Box::new(t)),
+                cause: c.map(|x| Box::new(x.1)),
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
-        }
+        })
     },
 };
 
 ImportStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> "import" <names: OneOrMore<ImportAsAlias<DottedName>>> <nac3com_end:config_comment?> => {
-        ast::Stmt {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "import" <names: OneOrMore<ImportAsAlias<DottedName>>> <nac3com_end:config_comment?> =>? {
+        Ok(ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Import { names, config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
+            node: ast::StmtKind::Import {
+                names,
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
-        }
+        })
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> "from" <source:ImportFromLocation> "import" <names: ImportAsNames> <nac3com_end:config_comment?> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "from" <source:ImportFromLocation> "import" <names: ImportAsNames> <nac3com_end:config_comment?> =>? {
         let (level, module) = source;
-        ast::Stmt {
+        Ok(ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::ImportFrom {
                 level,
                 module: module.map(|s| s.into()),
                 names,
-                config_comment: nac3com_above
-                    .into_iter()
-                    .map(|(com, _)| com)
-                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                    .collect(),
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
-        }
+        })
     },
 };
 
@@ -392,50 +328,42 @@ DottedName: String = {
 };
 
 GlobalStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> "global" <names:OneOrMore<Identifier>> <nac3com_end:config_comment?> => {
-        ast::Stmt {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "global" <names:OneOrMore<Identifier>> <nac3com_end:config_comment?> =>? {
+        Ok(ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Global { names, config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
+            node: ast::StmtKind::Global {
+                names,
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             }
-        }
+        })
     },
 };
 
 NonlocalStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> "nonlocal" <names:OneOrMore<Identifier>> <nac3com_end:config_comment?> => {
-        ast::Stmt {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "nonlocal" <names:OneOrMore<Identifier>> <nac3com_end:config_comment?> =>? {
+        Ok(ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Nonlocal { names, config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
+            node: ast::StmtKind::Nonlocal {
+                names,
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             }
-        }
+        })
     },
 };
 
 AssertStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> "assert" <test:Test> <msg: ("," Test)?> <nac3com_end:config_comment?> => {
-        ast::Stmt {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "assert" <test:Test> <msg: ("," Test)?> <nac3com_end:config_comment?> =>? {
+        Ok(ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::Assert {
                 test: Box::new(test),
                 msg: msg.map(|e| Box::new(e.1)),
-                config_comment: nac3com_above
-                    .into_iter()
-                    .map(|(com, _)| com)
-                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                    .collect(),
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             }
-        }
+        })
     },
 };
 
@@ -450,7 +378,7 @@ CompoundStatement: ast::Stmt = {
 };
 
 IfStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> "if" <test:NamedExpressionTest> ":" <nac3com_end:config_comment?> <body:Suite> <s2:(@L "elif" NamedExpressionTest ":" Suite)*> <s3:("else" ":" Suite)?> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "if" <test:NamedExpressionTest> ":" <nac3com_end:config_comment?> <body:Suite> <s2:(@L "elif" NamedExpressionTest ":" Suite)*> <s3:("else" ":" Suite)?> =>? {
         // Determine last else:
         let mut last = s3.map(|s| s.2).unwrap_or_default();
 
@@ -459,80 +387,74 @@ IfStatement: ast::Stmt = {
             let x = ast::Stmt {
                 custom: (),
                 location: i.0,
-                node: ast::StmtKind::If { test: Box::new(i.2), body: i.4, orelse: last, config_comment: nac3com_above.clone()
-                    .into_iter()
-                    .map(|(com, _)| com)
-                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                    .collect()
-                },
+                node: ast::StmtKind::If { test: Box::new(i.2), body: i.4, orelse: last, config_comment: vec![] },
             };
             last = vec![x];
         }
 
-        ast::Stmt {
+        Ok(ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::If { test: Box::new(test), body, orelse: last, config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
+            node: ast::StmtKind::If {
+                test: Box::new(test),
+                body,
+                orelse: last,
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             }
-        }
+        })
     },
 };
 
 WhileStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> "while" <test:NamedExpressionTest> ":" <nac3com_end:config_comment?> <body:Suite> <s2:("else" ":" Suite)?> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "while" <test:NamedExpressionTest> ":" <nac3com_end:config_comment?> <body:Suite> <s2:("else" ":" Suite)?> =>? {
         let orelse = s2.map(|s| s.2).unwrap_or_default();
-        ast::Stmt {
+        Ok(ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::While {
                 test: Box::new(test),
                 body,
                 orelse,
-                config_comment: nac3com_above
-                    .into_iter()
-                    .map(|(com, _)| com)
-                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                    .collect(),
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
-        }
+        })
     },
 };
 
 ForStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> <is_async:"async"?> "for" <target:ExpressionList> "in" <iter:TestList> ":" <nac3com_end:config_comment?> <body:Suite> <s2:("else" ":" Suite)?> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> <is_async:"async"?> "for" <target:ExpressionList> "in" <iter:TestList> ":" <nac3com_end:config_comment?> <body:Suite> <s2:("else" ":" Suite)?> =>? {
         let orelse = s2.map(|s| s.2).unwrap_or_default();
         let target = Box::new(target);
         let iter = Box::new(iter);
         let type_comment = None;
         let node = if is_async.is_some() {
-            ast::StmtKind::AsyncFor { target, iter, body, orelse, type_comment, config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
+            ast::StmtKind::AsyncFor {
+                target,
+                iter,
+                body,
+                orelse,
+                type_comment,
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             }
         } else {
-            ast::StmtKind::For { target, iter, body, orelse, type_comment,
-                config_comment: nac3com_above
-                    .into_iter()
-                    .map(|(com, _)| com)
-                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                    .collect(),
+            ast::StmtKind::For {
+                target,
+                iter,
+                body,
+                orelse,
+                type_comment,
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             }
         };
-        ast::Stmt::new(location, node)
+        Ok(ast::Stmt::new(location, node))
     },
 };
 
 TryStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> "try" ":" <nac3com_end:config_comment?> <body:Suite> <handlers:ExceptClause+> <else_suite:("else" ":" Suite)?> <finally:("finally" ":" Suite)?> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "try" ":" <nac3com_end:config_comment?> <body:Suite> <handlers:ExceptClause+> <else_suite:("else" ":" Suite)?> <finally:("finally" ":" Suite)?> =>? {
         let orelse = else_suite.map(|s| s.2).unwrap_or_default();
         let finalbody = finally.map(|s| s.2).unwrap_or_default();
-        ast::Stmt {
+        Ok(ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::Try {
@@ -540,19 +462,15 @@ TryStatement: ast::Stmt = {
                 handlers,
                 orelse,
                 finalbody,
-                config_comment: nac3com_above
-                    .into_iter()
-                    .map(|(com, _)| com)
-                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                    .collect(),
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
-        }
+        })
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> "try" ":" <nac3com_end:config_comment?> <body:Suite> <finally:("finally" ":" Suite)> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "try" ":" <nac3com_end:config_comment?> <body:Suite> <finally:("finally" ":" Suite)> =>? {
         let handlers = vec![];
         let orelse = vec![];
         let finalbody = finally.2;
-        ast::Stmt {
+        Ok(ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::Try {
@@ -560,13 +478,9 @@ TryStatement: ast::Stmt = {
                 handlers,
                 orelse,
                 finalbody,
-                config_comment: nac3com_above
-                    .into_iter()
-                    .map(|(com, _)| com)
-                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                    .collect(),
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
-        }
+        })
     },
 };
 
@@ -594,24 +508,24 @@ ExceptClause: ast::Excepthandler = {
 };
 
 WithStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> <is_async:"async"?> "with" <items:OneOrMore<WithItem>> ":" <nac3com_end:config_comment?> <body:Suite> => {
+    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> <is_async:"async"?> "with" <items:OneOrMore<WithItem>> ":" <nac3com_end:config_comment?> <body:Suite> =>? {
         let type_comment = None;
         let node = if is_async.is_some() {
-            ast::StmtKind::AsyncWith { items, body, type_comment, config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
+            ast::StmtKind::AsyncWith {
+                items,
+                body,
+                type_comment,
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             }
         } else {
-            ast::StmtKind::With { items, body, type_comment, config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
+            ast::StmtKind::With {
+                items,
+                body,
+                type_comment,
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             }
         };
-        ast::Stmt::new(location, node)
+        Ok(ast::Stmt::new(location, node))
     },
 };
 
@@ -624,26 +538,32 @@ WithItem: ast::Withitem = {
 };
 
 FuncDef: ast::Stmt = {
-    <decorator_list:Decorator*> <location:@L> <nac3com_above:(config_comment "\n")*> <is_async:"async"?> "def" <name:Identifier> <args:Parameters> <r:("->" Test)?> ":" <nac3com_end:config_comment?> <body:Suite> => {
+    <decorator_list:Decorator*> <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> <is_async:"async"?> "def" <name:Identifier> <args:Parameters> <r:("->" Test)?> ":" <nac3com_end:config_comment?> <body:Suite> =>? {
         let args = Box::new(args);
         let returns = r.map(|x| Box::new(x.1));
         let type_comment = None;
         let node = if is_async.is_some() {
-            ast::StmtKind::AsyncFunctionDef { name, args, body, decorator_list, returns, type_comment, config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
+            ast::StmtKind::AsyncFunctionDef {
+                name,
+                args,
+                body,
+                decorator_list,
+                returns,
+                type_comment,
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             }
         } else {
-            ast::StmtKind::FunctionDef { name, args, body, decorator_list, returns, type_comment, config_comment: nac3com_above
-                .into_iter()
-                .map(|(com, _)| com)
-                .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                .collect()
+            ast::StmtKind::FunctionDef {
+                name,
+                args,
+                body,
+                decorator_list,
+                returns,
+                type_comment,
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             }
         };
-        ast::Stmt::new(location, node)
+        Ok(ast::Stmt::new(location, node))
     },
 };
 
@@ -781,12 +701,12 @@ KwargParameter<ArgType>: Option<Box<ast::Arg>> = {
 };
 
 ClassDef: ast::Stmt = {
-    <decorator_list:Decorator*> <location:@L> <nac3com_above:(config_comment "\n")*> "class" <name:Identifier> <a:("(" ArgumentList ")")?> ":" <nac3com_end:config_comment?> <body:Suite> => {
+    <decorator_list:Decorator*> <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "class" <name:Identifier> <a:("(" ArgumentList ")")?> ":" <nac3com_end:config_comment?> <body:Suite> =>? {
         let (bases, keywords) = match a {
             Some((_, arg, _)) => (arg.args, arg.keywords),
             None => (vec![], vec![]),
         };
-        ast::Stmt {
+        Ok(ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::ClassDef {
@@ -795,13 +715,9 @@ ClassDef: ast::Stmt = {
                 keywords,
                 body,
                 decorator_list,
-                config_comment: nac3com_above
-                    .into_iter()
-                    .map(|(com, _)| com)
-                    .chain(nac3com_end.map_or_else(|| vec![].into_iter(), |com| vec![com].into_iter()))
-                    .collect(),
+                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
             },
-        }
+        })
     },
 };
 
