@@ -1,6 +1,6 @@
 ---
 source: parser/src/parser.rs
-expression: parse_program(&source).unwrap()
+expression: "parse_program(&source, Some(\" nac3:\")).unwrap()"
 
 ---
 [
@@ -188,7 +188,7 @@ expression: parse_program(&source).unwrap()
             body: [
                 Located {
                     location: Location {
-                        row: 8,
+                        row: 9,
                         column: 5,
                     },
                     custom: (),
@@ -200,7 +200,7 @@ expression: parse_program(&source).unwrap()
                 },
                 Located {
                     location: Location {
-                        row: 10,
+                        row: 12,
                         column: 5,
                     },
                     custom: (),

@@ -50,9 +50,10 @@ Statement: ast::Suite = {
 };
 
 SimpleStatement: ast::Suite = {
-    <s1:SmallStatement> <s2:(";" SmallStatement)*> ";"? "\n" => {
+    <nac3com_above:(config_comment "\n")*> <s1:SmallStatement> <s2:(";" SmallStatement)*> ";"? <nac3com_end:config_comment?> "\n" => {
         let mut statements = vec![s1];
         statements.extend(s2.into_iter().map(|e| e.1));
+        handle_small_stmt(&mut statements, nac3com_above, nac3com_end);
         statements
     }
 };
@@ -69,40 +70,34 @@ SmallStatement: ast::Stmt = {
 };
 
 PassStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "pass" <nac3com_end:config_comment?> =>? {
-        Ok(ast::Stmt {
+    <location:@L> "pass" => {
+        ast::Stmt {
             location,
             custom: (),
-            node: ast::StmtKind::Pass { config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)? },
-        })
+            node: ast::StmtKind::Pass { config_comment: vec![] },
+        }
     },
 };
 
 DelStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "del" <targets:ExpressionList2> <nac3com_end:config_comment?> =>? {
-        Ok(ast::Stmt {
+    <location:@L> "del" <targets:ExpressionList2> => {
+        ast::Stmt {
             location,
             custom: (),
-            node: ast::StmtKind::Delete {
-                targets,
-                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
-            },
-        })
+            node: ast::StmtKind::Delete { targets, config_comment: vec![] },
+        }
     },
 };
 
 ExpressionStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> <expression:TestOrStarExprList> <suffix:AssignSuffix*> <nac3com_end:config_comment?> =>? {
+    <location:@L> <expression:TestOrStarExprList> <suffix:AssignSuffix*> => {
         // Just an expression, no assignment:
         if suffix.is_empty() {
-            Ok(ast::Stmt {
+            ast::Stmt {
                 custom: (),
                 location,
-                node: ast::StmtKind::Expr {
-                    value: Box::new(expression),
-                    config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
-                }
-            })
+                node: ast::StmtKind::Expr { value: Box::new(expression), config_comment: vec![] }
+            }
         } else {
             let mut targets = vec![expression];
             let mut values = suffix;
@@ -113,30 +108,28 @@ ExpressionStatement: ast::Stmt = {
 
             let value = Box::new(values.into_iter().next().unwrap());
 
-            Ok(ast::Stmt {
+            ast::Stmt {
                 custom: (),
                 location,
-                node: ast::StmtKind::Assign { targets, value, type_comment: None,
-                    config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
-                },
-            })
+                node: ast::StmtKind::Assign { targets, value, type_comment: None, config_comment: vec![] },
+            }
         }
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> <target:TestOrStarExprList> <op:AugAssign> <rhs:TestListOrYieldExpr> <nac3com_end:config_comment?> =>? {
-        Ok(ast::Stmt {
+    <location:@L> <target:TestOrStarExprList> <op:AugAssign> <rhs:TestListOrYieldExpr> => {
+        ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::AugAssign {
                 target: Box::new(target),
                 op,
                 value: Box::new(rhs),
-                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
+                config_comment: vec![],
             },
-        })
+        }
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> <target:Test> ":" <annotation:Test> <rhs:AssignSuffix?> <nac3com_end:config_comment?> =>? {
+    <location:@L> <target:Test> ":" <annotation:Test> <rhs:AssignSuffix?> => {
         let simple = matches!(target.node, ast::ExprKind::Name { .. });
-        Ok(ast::Stmt {
+        ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::AnnAssign {
@@ -144,9 +137,9 @@ ExpressionStatement: ast::Stmt = {
                 annotation: Box::new(annotation),
                 value: rhs.map(Box::new),
                 simple,
-                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
+                config_comment: vec![],
             },
-        })
+        }
     },
 };
 
@@ -196,91 +189,74 @@ AugAssign: ast::Operator = {
 };
 
 FlowStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "break" <nac3com_end:config_comment?> =>? {
-        Ok(ast::Stmt {
+    <location:@L> "break" => {
+        ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Break { config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)? },
-        })
+            node: ast::StmtKind::Break { config_comment: vec![] },
+        }
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "continue" <nac3com_end:config_comment?> =>? {
-        Ok(ast::Stmt {
+    <location:@L> "continue" => {
+        ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Continue { config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)? },
-        })
+            node: ast::StmtKind::Continue { config_comment: vec![] },
+        }
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "return" <value:TestList?> <nac3com_end:config_comment?> =>? {
-        Ok(ast::Stmt {
+    <location:@L> "return" <value:TestList?> => {
+        ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Return {
-                value: value.map(Box::new),
-                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
-            },
-        })
+            node: ast::StmtKind::Return { value: value.map(Box::new), config_comment: vec![] },
+        }
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> <expression:YieldExpr> <nac3com_end:config_comment?> =>? {
-        Ok(ast::Stmt {
+    <location:@L> <expression:YieldExpr> => {
+        ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Expr {
-                value: Box::new(expression),
-                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
-            },
-        })
+            node: ast::StmtKind::Expr { value: Box::new(expression), config_comment: vec![] },
+        }
     },
     RaiseStatement,
 };
 
 RaiseStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "raise" <nac3com_end:config_comment?> =>? {
-        Ok(ast::Stmt {
+    <location:@L> "raise" => {
+        ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Raise {
-                exc: None,
-                cause: None,
-                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
-            },
-        })
+            node: ast::StmtKind::Raise { exc: None, cause: None, config_comment: vec![] },
+        }
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "raise" <t:Test> <c:("from" Test)?> <nac3com_end:config_comment?> =>? {
-        Ok(ast::Stmt {
+    <location:@L> "raise" <t:Test> <c:("from" Test)?> => {
+        ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Raise {
-                exc: Some(Box::new(t)),
-                cause: c.map(|x| Box::new(x.1)),
-                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
-            },
-        })
+            node: ast::StmtKind::Raise { exc: Some(Box::new(t)), cause: c.map(|x| Box::new(x.1)), config_comment: vec![] },
+        }
     },
 };
 
 ImportStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "import" <names: OneOrMore<ImportAsAlias<DottedName>>> <nac3com_end:config_comment?> =>? {
-        Ok(ast::Stmt {
+    <location:@L> "import" <names: OneOrMore<ImportAsAlias<DottedName>>> => {
+        ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Import {
-                names,
-                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
-            },
-        })
+            node: ast::StmtKind::Import { names, config_comment: vec![] },
+        }
     },
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "from" <source:ImportFromLocation> "import" <names: ImportAsNames> <nac3com_end:config_comment?> =>? {
+    <location:@L> "from" <source:ImportFromLocation> "import" <names: ImportAsNames> => {
         let (level, module) = source;
-        Ok(ast::Stmt {
+        ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::ImportFrom {
                 level,
                 module: module.map(|s| s.into()),
                 names,
-                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
+                config_comment: vec![]
             },
-        })
+        }
     },
 };
 
@@ -328,42 +304,36 @@ DottedName: String = {
 };
 
 GlobalStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "global" <names:OneOrMore<Identifier>> <nac3com_end:config_comment?> =>? {
-        Ok(ast::Stmt {
+    <location:@L> "global" <names:OneOrMore<Identifier>> => {
+        ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Global {
-                names,
-                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
-            }
-        })
+            node: ast::StmtKind::Global { names, config_comment: vec![] }
+        }
     },
 };
 
 NonlocalStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "nonlocal" <names:OneOrMore<Identifier>> <nac3com_end:config_comment?> =>? {
-        Ok(ast::Stmt {
+    <location:@L> "nonlocal" <names:OneOrMore<Identifier>> => {
+        ast::Stmt {
             custom: (),
             location,
-            node: ast::StmtKind::Nonlocal {
-                names,
-                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
-            }
-        })
+            node: ast::StmtKind::Nonlocal { names, config_comment: vec![] }
+        }
     },
 };
 
 AssertStatement: ast::Stmt = {
-    <location:@L> <nac3com_above:(config_comment "\n")*> <stmt_loc:@L> "assert" <test:Test> <msg: ("," Test)?> <nac3com_end:config_comment?> =>? {
-        Ok(ast::Stmt {
+    <location:@L> "assert" <test:Test> <msg: ("," Test)?> => {
+        ast::Stmt {
             custom: (),
             location,
             node: ast::StmtKind::Assert {
                 test: Box::new(test),
                 msg: msg.map(|e| Box::new(e.1)),
-                config_comment: make_config_comment(location, stmt_loc, nac3com_above, nac3com_end)?
+                config_comment: vec![],
             }
-        })
+        }
     },
 };
 

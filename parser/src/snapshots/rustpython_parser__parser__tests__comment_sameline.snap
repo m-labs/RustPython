@@ -71,7 +71,7 @@ expression: "parse_program(&source, Some(\" nac3:\")).unwrap()"
                 },
                 Located {
                     location: Location {
-                        row: 3,
+                        row: 4,
                         column: 5,
                     },
                     custom: (),
@@ -95,7 +95,7 @@ expression: "parse_program(&source, Some(\" nac3:\")).unwrap()"
                 },
                 Located {
                     location: Location {
-                        row: 5,
+                        row: 6,
                         column: 5,
                     },
                     custom: (),
@@ -192,7 +192,7 @@ expression: "parse_program(&source, Some(\" nac3:\")).unwrap()"
                 },
                 Located {
                     location: Location {
-                        row: 7,
+                        row: 8,
                         column: 5,
                     },
                     custom: (),

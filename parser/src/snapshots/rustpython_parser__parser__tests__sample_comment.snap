@@ -25,7 +25,7 @@ expression: "parse_program(&source, Some(\" nac3:\")).unwrap()"
             body: [
                 Located {
                     location: Location {
-                        row: 5,
+                        row: 6,
                         column: 5,
                     },
                     custom: (),
