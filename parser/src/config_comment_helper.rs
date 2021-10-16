@@ -34,7 +34,21 @@ pub fn make_config_comment(
     )
 }
 
-pub fn handle_small_stmt<U>(stmts: &mut [Stmt<U>], nac3com_above: Vec<(Ident, Tok)>, nac3com_end: Option<Ident>) {
+pub fn handle_small_stmt<U>(stmts: &mut [Stmt<U>], nac3com_above: Vec<(Ident, Tok)>, nac3com_end: Option<Ident>, com_above_loc: Location) -> Result<(), ParseError<Location, Tok, LexicalError>> {
+    if com_above_loc.column() != stmts[0].location.column() {
+        return Err(ParseError::User {
+            error: LexicalError {
+                location: com_above_loc,
+                error: LexicalErrorType::OtherError(
+                    format!(
+                        "config comment at top must have the same indentation with what it applies, comment at {}, statement at {}",
+                        com_above_loc,
+                        stmts[0].location,
+                    )
+                )
+            }
+        })
+    }
     apply_config_comments(
         &mut stmts[0],
         nac3com_above
@@ -45,6 +59,7 @@ pub fn handle_small_stmt<U>(stmts: &mut [Stmt<U>], nac3com_above: Vec<(Ident, To
         stmts.last_mut().unwrap(),
         nac3com_end.map_or_else(Vec::new, |com| vec![com])
     );
+    Ok(())
 }
 
 fn apply_config_comments<U>(stmt: &mut Stmt<U>, comments: Vec<Ident>) {

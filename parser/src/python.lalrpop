@@ -50,11 +50,11 @@ Statement: ast::Suite = {
 };
 
 SimpleStatement: ast::Suite = {
-    <nac3com_above:(config_comment "\n")*> <s1:SmallStatement> <s2:(";" SmallStatement)*> ";"? <nac3com_end:config_comment?> "\n" => {
+    <com_loc:@L> <nac3com_above:(config_comment "\n")*> <s1:SmallStatement> <s2:(";" SmallStatement)*> ";"? <nac3com_end:config_comment?> "\n" =>? {
         let mut statements = vec![s1];
         statements.extend(s2.into_iter().map(|e| e.1));
-        handle_small_stmt(&mut statements, nac3com_above, nac3com_end);
-        statements
+        handle_small_stmt(&mut statements, nac3com_above, nac3com_end, com_loc)?;
+        Ok(statements)
     }
 };
 

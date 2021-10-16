@@ -306,4 +306,13 @@ for i in a: # nac3: for1
         println!("{:?}", lex_source(source));
         insta::assert_debug_snapshot!(parse_program(&source, Some(" nac3:")).unwrap());
     }
+
+    #[test]
+    fn test_comment_should_fail() {
+        let source = "\
+if a: # nac3: something
+a = 3
+";
+        insta::assert_debug_snapshot!(parse_program(&source, Some(" nac3:")).unwrap());
+    }
 }
